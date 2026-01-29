@@ -1,0 +1,575 @@
+
+📌 Slide 1:
+# Thông tin trích xuất từ ảnh
+
+**1. Học viện:** Công nghệ Bưu chính Viễn thông
+
+**2. Khoa:** Khoa Công nghệ thông tin 1
+
+**3. Tên giảng viên:** Mạng Bayes
+
+**4. Giáo sư:** PGS.TS: Ngô Xuân Bách
+
+**5. Email:** bachnx@ptit.edu.vn
+
+**6. Logo:** PTIT và Naver
+
+
+📌 Slide 2:
+# Tóm tắt thông tin từ ảnh
+
+Ảnh hiển thị một slide trình chiếu với tiêu đề **"Nội dung"**.  Nội dung chính bao gồm hai điểm:
+
+* **Định nghĩa và cách xây dựng mạng Bayes:**  Khái niệm về mạng Bayes được trình bày chi tiết, bao gồm các khía cạnh như định nghĩa, cách thức hoạt động và ứng dụng.
+* **Suy diễn với mạng Bayes:**  Phần này tập trung vào việc phân tích và so sánh mạng Bayes với các mạng khác trong lĩnh vực kinh tế hoặc tài chính.
+
+Hình ảnh còn cho thấy một người đàn ông (có thể là giảng viên hoặc chuyên gia) đang ngồi trước máy tính xách tay, có lẽ đang trình bày nội dung trên slide. Logo của Naver và PTIT cũng được hiển thị ở góc dưới bên phải.
+
+
+📌 Slide 3:
+# Vấn đề biểu diễn xác suất
+
+**Bài toán suy diễn:**
+
+* Cho bằng chứng **E1, E2, ..., En**
+* Cần xác định yêu cầu **Q** bằng cách tính **P(Q|E1, E2, ..., En)**
+
+**Nếu có tất cả các xác suất đồng thời:**
+
+* Có thể tính xác suất điều kiện trên
+
+**Bảng xác suất đồng thời có kích thước tăng theo hàm mũ của số biến:**
+
+* Quá lớn trên thực tế
+
+**Cần có cách biểu diễn và suy diễn thực tế hơn**
+
+
+📌 Slide 4:
+# Ví dụ 1/2: Đố đoán trong nhà có người không
+
+**Bài toán:** Một người đi làm về, cần đoán trong nhà có người không?
+
+**Biết rằng:**
+
+* Nếu người nhà đi vắng thì thường (nhưng không luôn luôn) bật đèn ngoài sân.
+* Khi không có người ở nhà thì thường buộc chó ở bên ngoài.
+* Nếu chó bị ốm cũng bị buộc ở bên ngoài.
+* Nếu chó ở ngoài thì có thể nghe tiếng sữa.
+
+
+📌 Slide 5:
+# Ví dụ (2/2): Xác định 5 biến ngẫu nhiên
+
+Hình ảnh hiển thị một slide bài thuyết trình với tiêu đề "Ví dụ (2/2)" và yêu cầu người xem xác định 5 biến ngẫu nhiên sau:
+
+* **O:** Nhà không có người
+* **L:** Đèn ngoài sân sáng
+* **D:** Chó buộc ở ngoài
+* **B:** Chó bị ốm (đau bụng)
+* **H:** Nghe thấy tiếng sủa
+
+Phía dưới cùng bên phải có logo của Naver PTIT.
+
+
+📌 Slide 6:
+# Quan hệ giữa các nút trong đồ thị
+
+Hình ảnh hiển thị một sơ đồ minh họa quan hệ giữa các nút trong một đồ thị. Sơ đồ bao gồm:
+
+* **Số lượng nút:** Có 4 nút được đánh dấu là O, L, D và H.
+* **Quan hệ giữa các nút:**
+    * Nút O có mối quan hệ với nút L.
+    * Nút O có mối quan hệ với nút D.
+    * Nút O có mối quan hệ với nút H.
+    * Nút L có mối quan hệ với nút D.
+    * Nút L có mối quan hệ với nút H.
+    * Nút D có mối quan hệ với nút B.
+    * Nút D có mối quan hệ với nút H.
+    * Nút H có mối quan hệ với nút B.
+    * Nút H có mối quan hệ với nút B.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+    * Nút B có mối quan hệ với nút O.
+    * Nút B có mối quan hệ với nút D.
+    * Nút B có mối quan hệ với nút H.
+
+
+📌 Slide 7:
+# Mạng Bayes
+
+Hình ảnh hiển thị một sơ đồ minh họa cho khái niệm Mạng Bayes.  Sơ đồ bao gồm các điểm (O, B, D, H) được nối với nhau bởi các đường thẳng biểu diễn mối quan hệ giữa các yếu tố.  Mỗi điểm đại diện cho một yếu tố khác nhau và mỗi đường thẳng thể hiện mối quan hệ giữa các yếu tố đó.
+
+**Thông tin chi tiết:**
+
+* **P(O):** Phần tử đầu tiên của mạng Bayes.
+* **P(B):** Phần tử thứ hai của mạng Bayes.
+* **P(L):** Phần tử thứ ba của mạng Bayes.
+* **P(H):** Phần tử thứ tư của mạng Bayes.
+* **P(L|O):** Tỉ lệ phần tử L dựa trên yếu tố O.
+* **P(L|-O):** Tỉ lệ phần tử L không dựa trên yếu tố O.
+* **P(H|D):** Tỉ lệ phần tử H dựa trên yếu tố D.
+* **P(H|-D):** Tỉ lệ phần tử H không dựa trên yếu tố D.
+* **P(D|O,B):** Tỉ lệ phần tử D dựa trên yếu tố O và B.
+* **P(D|O,-B):** Tỉ lệ phần tử D dựa trên yếu tố O và không dựa trên yếu tố B.
+* **P(D|-O,B):** Tỉ lệ phần tử D không dựa trên yếu tố O và B.
+* **P(D|-O,-B):** Tỉ lệ phần tử D không dựa trên yếu tố O và không dựa trên yếu tố B.
+* **P(H|D):** Tỉ lệ phần tử H dựa trên yếu tố D.
+* **P(H|-D):** Tỉ lệ phần tử H không dựa trên yếu tố D.
+* **P(L)|O**: Tỉ lệ phần tử L dựa trên yếu tố O.
+* **P(L|-O)**: Tỉ lệ phần tử L không dựa trên yếu tố O.
+* **P(H)|D**: Tỉ lệ phần tử H dựa trên yếu tố D.
+* **P(H|-D)**: Tỉ lệ phần tử H không dựa trên yếu tố D.
+
+**Tổng quan:** Sơ đồ này minh họa sự liên kết giữa các yếu tố trong mạng Bayes, giúp người xem hiểu rõ hơn về cách tính toán tỉ lệ phần tử dựa trên các yếu tố khác nhau.
+
+
+📌 Slide 8:
+# Tính Độc Lập Xác Suất Của Mạng Bayes
+
+Hình ảnh trình bày về cách tính độc lập xác suất trong mạng Bayes.  Dưới đây là tóm tắt thông tin:
+
+* **Mạng Bayes:** Cho phép biểu diễn ngắn gọn toàn bộ các xác suất đồng thời.
+* **Độc Lập Xác Suất:** Mỗi nút V độc lập với tất cả các nút không phải là hậu duệ của V, nếu biết giá trị các nút bố mẹ của V.
+* **Ví dụ minh họa:** Ví dụ được đưa ra là H độc lập có điều kiện với L, O, B nếu biết D.
+
+Bên cạnh đó, hình ảnh còn cung cấp một sơ đồ minh họa cho việc tính toán độc lập xác suất, bao gồm các yếu tố: P(O), P(L), P(O|L), P(L|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O), P(O|B), P(B|O), P(O|D), P(D|O),
+
+
+📌 Slide 9:
+# Tính xác suất đồng thời cho mạng Bayes
+
+Hình ảnh minh họa tính xác suất đồng thời cho mạng Bayes với các ví dụ cụ thể:
+
+**Ví dụ 1:**
+* P(H | L, D, O, B) = 0.6
+* P(L | H, D, O, B) = 0.3
+* P(O | H, L, D, O, B) = 0.5
+* P(B | H, L, D, O, B) = 0.4
+
+**Ví dụ 2:**
+* P(H | L, O, D, O, B) = 0.8
+* P(L | H, O, D, O, B) = 0.7
+* P(O | H, L, O, D, O, B) = 0.9
+* P(B | H, L, O, D, O, B) = 0.6
+
+**Tổng quan:**
+Hình ảnh sử dụng sơ đồ cây để minh họa mối quan hệ giữa các yếu tố (H, L, D, O, B) trong mạng Bayes. Các giá trị xác suất được biểu diễn bằng các mũi tên nối các điểm tương ứng.
+
+
+📌 Slide 10:
+# Tính xác suất đồng thời (tổng quát)
+
+Hình ảnh hiển thị công thức tính xác suất đồng thời, được viết tắt là **P(X1 = x1,...,Xn = xn) = ∫I P(Xi = xi | parents(Xi)) từ i=1 đến n.**
+
+* **Công thức:**  `P(X1 = x1,...,Xn = xn) = ∫I P(Xi = xi | parents(Xi)) từ i=1 đến n.`
+* **Giải thích:** Công thức này thể hiện cách tính xác suất đồng thời của một tập hợp các biến số X1, X2, ..., Xn khi chúng đại diện cho các giai đoạn khác nhau trong một chu trình hoặc quá trình.
+
+**Thông tin bổ sung:**
+* Hình ảnh có kèm theo hình ảnh của một người đàn ông, có thể là giảng viên hoặc người thuyết trình.
+* Logo Naver PTIT được hiển thị ở góc dưới bên phải.
+
+
+📌 Slide 11:
+# Xây dựng mạng Bayes (bằng tay)
+
+**1. Xác định tập các biến ngẫu nhiên liên quan**
+
+**2. Chọn thứ tự cho các biến**
+
+**Ví dụ:** X<sub>1</sub>, X<sub>2</sub>, ..., X<sub>n</sub>
+
+**3. `for i = 1 to n do`
+
+* a. Thêm một nút cho Xi<sub>i</sub>
+* b. Chọn parents(X<sub>i</sub>) là tập nhỏ nhất các nút đã có sao cho Xi<sub>i</sub> độc lập có điều kiện với tất cả các nút trước đó nếu biết parents(X<sub>i</sub>)
+* c. Thêm một cung có hướng từ mỗi nút parents(X<sub>i</sub>) tới Xi<sub>i</sub>
+* d. Thêm các giá trị xác suất điều kiện P(parents(X<sub>i</sub>) = 0 hoặc P(X<sub>i</sub>) nếu parents(X<sub>i</sub>) = 0
+
+
+📌 Slide 12:
+# Ví dụ 1/2: Hệ thống báo động chống trộm
+
+Hình ảnh trình bày một ví dụ về hệ thống báo động chống trộm ở nhà, bao gồm các trường hợp:
+
+* **Một người vừa lắp hệ thống báo động:** Hệ thống sẽ phát tiếng động khi có trộm.
+* **Tuy nhiên, hệ thống có thể báo động sai:** Nếu có chấn động do động đất, hệ thống có thể báo động sai.
+* **Trong trường hợp nghe thấy hệ thống báo động, hai người hàng xóm tên Nam và Việt sẽ gọi điện cho chủ nhà.**
+* **Do nhiều nguyên nhân khác nhau, Nam và Việt có thể thông báo sai, chẳng hạn do ồn nên không nghe thấy chuông báo động hoặc ngược lại, nhằm âm thanh khác là tiếng chuông.**
+
+
+📌 Slide 13:
+# Ví dụ 2/2: Xây dựng mạng thể hiện sự tương tác
+
+Hình ảnh minh họa một ví dụ về cách xây dựng mạng thể hiện sự tương tác thông qua 5 biến:
+
+* **Bước 1:** Lựa chọn 5 biến sau:
+    * T (có trộm)
+    * D (động đất)
+    * C (chuông báo động)
+    * N (Nam gọi điện)
+    * V (Việt gọi điện)
+
+* **Bước 2:** Các biến được sắp xếp theo thứ tự T, Đ, C, N, V.
+
+* **Bước 3:** Thực hiện như các bước ở hình vẽ, ta xây dựng được mạng thể hiện trên hình sau (để đơn giản, trên hình vẽ chỉ thể hiện cấu trúc và không có bảng xác suất điều kiện).
+
+
+📌 Slide 14:
+# Ảnh hưởng của việc sắp xếp các nút trong mạng Bayes
+
+Hình ảnh mô tả ảnh hưởng của việc sắp xếp các nút trong mạng Bayes trong thực tế.  Nội dung chính bao gồm:
+
+* **Việc xây dựng mạng Bayes trong thực tế không đơn giản:**  Việc này đòi hỏi nhiều thao tác phức tạp và khó khăn.
+* **Việc chọn thứ tự các nút đúng để từ đây chọn được tập nút cha có kích thước nhỏ là khó khăn:**  Một vấn đề quan trọng trong việc thiết kế mạng Bayes.
+* **Giả sử các biến được xếp theo thứ tự khác: N, V, C, T, Đ:**  Một ví dụ minh họa cho sự khác biệt trong cách sắp xếp các biến.
+
+Bên cạnh đó, hình ảnh còn cung cấp một sơ đồ minh họa về cách sắp xếp các biến (N, V, C, T, Đ) thành các tập nút khác nhau (N, V, C, T, Đ).
+
+
+📌 Slide 15:
+# Tính độc lập xác suất tổng quát: Khái niệm d- phân cách (1/5)
+
+**Nội dung chính:**
+
+* **Câu hỏi 1:** Nếu không biết giá trị của nút C, thì theo tính chất mạng Bayes N và V độc lập (không điều kiện).
+* **Câu hỏi 2:** Nếu đã biết giá trị của nút C, thì N và V còn độc lập với nhau hay không?
+
+**Thông tin bổ sung:**
+
+* Hình ảnh minh họa cho câu hỏi 2 là một sơ đồ mạng Bayes.
+* Có chú thích "Các kiến thức đã học không cho phép trả lời câu hỏi này!!!" ở cuối slide.
+
+
+📌 Slide 16:
+# Tính Độc Lập Xác Suất Tổng Quát: Khái Niệm D-Phân Cách (2/5)
+
+**1. Khái niệm d-Phân Cách:**
+
+* **Tính độc lập của tập các nút X với tập nút Y khi biết tập nút E trên một mạng Bayes:**
+    * Các nút X và Y được gọi là d-Phân Cách bởi các nút E nếu và Y là độc lập xác suất với nhau khi biết E.
+    * Các nút X và Y là d-kết nối với nhau nếu chúng không bị d-Phân Cách.
+
+**2. Xác định tính d-Phân Cách:**
+
+* Để xác định tính d-Phân Cách của tập X và Y, trước tiên ta cần xác định tính d-Phân Cách giữa hai nút đơn x thuộc X và y thuộc Y.
+* Hai tập nút sẽ độc lập với nhau nếu mỗi nút trong tập này độc lập với tất cả các nút trong tập kia.
+
+
+📌 Slide 17:
+# Tính độc lập xác suất tổng quát: Khái niệm d-phân cách (3/5)
+
+**Quy tắc 1:** Nút x và y là d-kết nối nếu tồn tại đường đi không bị phong tỏa giữa hai nút. Ngược lại, nếu không tồn tại đường đi như vậy thì x và y là d-phân cách.
+
+* **Đường đi:** Một chuỗi các cung nằm liền nhau, không tính tới hướng của các cung đó.
+* **Đường đi không bị phong tỏa:** Đường đi mà trên đó không có hai cung liền kề hướng vào nhau.
+* **Nút x có hai cung hướng vào như vậy gọi là nút xung đột.**
+
+**Tính kết nối và phân cách xác định theo Quy tắc 1 là không điều kiện và do vậy tính độc lập xác suất được xác định theo Quy tắc 1 là độc lập không điều kiện.**
+
+
+📌 Slide 18:
+# Tính độc lập xác suất tổng quát: Khái niệm d-phân cách (4/5)
+
+**Quy tắc 2:** Nút x và y là d-kết nối có điều kiện khi biết tập nút E nếu tồn tại đường đi không bị phong tỏa (không chứa nút xung đột) và không đi qua bất cứ nút nào thuộc E. Ngược lại, nếu không tồn tại đường đi như vậy thì ta nói rằng x và y là d-phân cách bởi E. Nói cách khác, mọi đường đi giữa x và y (nếu có) đều bị E phong tỏa.
+
+* **Khi biết giá trị một số nút (tập nút E), tính chất độc lập hay phụ thuộc giữa các nút còn lại có thể thay đổi.**
+* **Tính độc lập hay phụ thuộc trong trường hợp này được gọi là d-phân cách có điều kiện theo tập biến E.**
+
+Hình ảnh minh họa cho khái niệm d-phân cách với sơ đồ biểu diễn các nút x, y, t, u, v, r, s, t'.
+
+
+📌 Slide 19:
+# Tính độc lập xác suất tổng quát: Khái niệm d- phân cách (5/5)
+
+**Quy tắc 3:** Nếu một nút xung đột là thành viên của tập E, hoặc có hậu duệ thuộc tập E, thì nút đó không còn phong tỏa các đường đi qua nó nữa.
+
+**Giả sử:** Ta biết một sự kiện được gây ra bởi hai hay nhiều nguyên nhân. Nếu ta đã biết một nguyên nhân là đúng thì xác suất những nguyên nhân còn lại giảm đi. Nếu ta biết một nguyên nhân là sai thì xác suất những nguyên nhân còn lại tăng lên.
+
+**Sử dụng sơ đồ minh họa:**
+* **X:** Nguyên nhân đầu tiên
+* **r:** Nguyên nhân thứ hai
+* **S:** Nguyên nhân thứ ba
+* **t:** Nguyên nhân thứ tư
+* **u:** Nguyên nhân thứ năm
+* **v:** Nguyên nhân thứ sáu
+* **q:** Nguyên nhân thứ bảy
+
+**Kết luận:** S và y là d-kết nối, x và u là d- phân cách.
+
+
+📌 Slide 20:
+# Những nội dung đã học (nhắc lại)
+
+Hình ảnh hiển thị một slide thuyết trình với tiêu đề **"Những nội dung đã học (nhắc lại)"**. Slide liệt kê bốn nội dung chính:
+
+1. **Cách xây dựng mạng bayes (bằng tay):**  Đây là một phần quan trọng trong việc sử dụng mạng bayes.
+2. **Mạng bayes cho phép rút gọn việc biểu diễn:**  Mạng bayes được thiết kế để tối ưu hóa quá trình tính toán và biểu diễn dữ liệu.
+3. **Không cần lưu toàn bộ bảng xác suất đồng thời:**  Điều này giúp tiết kiệm thời gian và công sức trong quá trình tính toán.
+4. **Có thể tính xác suất đồng thời mọi tổ hợp giá trị các biến:**  Việc tính toán xác suất phức tạp hơn khi có nhiều biến số liên quan.
+
+Ngoài ra, hình ảnh còn có logo của Naver PTIT ở góc dưới bên phải.
+
+
+📌 Slide 21:
+# Ví dụ tính xác suất hậu nghiệm
+
+Hình ảnh minh họa một ví dụ về cách tính xác suất hậu nghiệm.  Nội dung bao gồm:
+
+* **Câu hỏi:** Cần tính P(L | B, H)
+* **Kết quả:**
+    * P(L) = 0.6
+    * P(B) = 0.3
+    * P(O) = 0.5
+    * P(I) = 0.1
+    * P(J) = 0.2
+    * P(H) = 0.8
+    * P(H|D) = 0.3
+    * P(H|O) = 0.6
+    * P(O|H) = 0.3
+    * P(O|O) = 0.7
+    * P(O|B) = 0.4
+    * P(O|D) = 0.5
+    * P(O|J) = 0.3
+    * P(O|H|D) = 0.2
+    * P(O|O) = 0.8
+    * P(O|B|H) = 0.3
+
+
+📌 Slide 22:
+# Trích xuất thông tin từ ảnh
+
+**Tiêu đề:** Trường hợp chung
+
+**Công thức thống kê:**
+
+P(E₁E₂) = P(E₁) * P(E₂|E₁)
+
+**Vấn đề:**
+
+* Đòi hỏi liệt kê các xác suất đồng thời có E₁, E₂.
+* Số lượng xác suất đồng thời như vậy tăng theo hàm mũ của số biến => không thực tế.
+
+**Suy luận trên mạng bayes:**
+
+Suy diễn nói chung trên mạng bayes là bài toán NP đầy đủ.
+
+
+📌 Slide 23:
+# Suy diễn trên thực tế
+
+**Suy diễn cho trường hợp riêng:**
+
+* **Khi mạng có dạng liên kết đơn (poly tree):** Giữa 2 nút bất kỳ không có quá 1 đường đi.
+* **Không phải**
+* **Tồn tại thuật toán với độ phức tạp tuyến tính cho poly tree**
+* **Suy diễn xấp xỉ bằng cách lấy mẫu**
+
+**Hình ảnh minh họa:**
+
+Hình ảnh bao gồm một sơ đồ minh họa cho mạng liên kết đơn (poly tree). Sơ đồ này được chia thành các phần, mỗi phần đại diện cho một nút trong mạng. Các nút được nối với nhau bằng các cạnh, thể hiện mối quan hệ giữa chúng. Một số nút được ghi chú là 'A poly tree'.
+
+
+📌 Slide 24:
+# Suy diễn cho trường hợp riêng đơn giản
+
+**Trường hợp đơn giản nhất:**
+
+* Khi bằng chứng E và kết quả Q có duy nhất một liên kết trực tiếp với nhau.
+
+**Phân biệt 2 trường hợp:**
+
+* **Suy diễn nhân quả (trên xuống):** Cần tính P(QE) khi E là nút cha của Q.
+* **Suy diễn chẩn đoán (dưới lên):** Cần tính P(QE) khi E là nút con của Q.
+
+
+📌 Slide 25:
+# Suy diễn nhân quả (3/3)
+
+**Ví dụ: Tính P(D|B)**
+
+* **P(O) = 0.6**
+* **P(B) = 0.3**
+
+**Bước 1: Dựa x/s điều kiện về x/s đồng thời**
+
+* **P(L₁ - O) = 0.6**
+
+**Bước 2: Sử dụng tính độc lập x/s trên mạng Bayes, viết lại các x/s đồng thời dưới dạng x/s điều kiện của nút con khi biết các giá trị bố mẹ**
+
+* **P(D(O), B) = 0.05**
+* **P(D(0), B) = 0.1**
+* **P(D(-1), B) = 0.2**
+
+**Bước 3: Sử dụng các giá trị x/s điều kiện để tính từ bảng x/s điều kiện**
+
+* **= (0.05)(0.6) + (0.1)(1 - 0.6) = 0.07**
+
+
+📌 Slide 26:
+# Suy Diễn Chuẩn Đoán (4/5)
+
+Hình ảnh hiển thị một bài toán về suy diễn chuẩn đoán. Bài toán bao gồm các bước sau:
+
+* **Phần 1:** Định nghĩa chuẩn đoán: P(B|D) = (P(D|B)P(B))/P(D)
+* **Phần 2:** Sử dụng tính chất của chuẩn đoán: P(-B|D) + P(B|D) = 1
+* **Phần 3:** Giải phương trình để tìm P(D): 0.602 + 0.279 / (0.602 + 0.279) = 1
+* **Phần 4:** Kết luận: P(D) = 0.881
+
+**Thông tin bổ sung:**
+* Hình ảnh có logo Naver PTIT ở góc dưới bên phải.
+* Có một người đàn ông mặc vest ngồi phía dưới, có thể là giảng viên hoặc người thuyết trình.
+
+
+📌 Slide 27:
+# Suy Diễn Chuẩn Đoán (5/5)
+
+Hình ảnh minh họa quá trình suy diễn chuẩn đoán theo quy tắc Bayes.  Bao gồm các bước:
+
+**Bước 1: Biến đổi về suy diễn nhân quả sử dụng quy tắc Bayes**
+
+* **P(O) = 0.6**
+* **P(B) = 0.3**
+* **P(-O|B) = 0.05**
+* **P(-B|-D) = 0.1**
+* **P(H|-D) = 0.2**
+
+**Để tính P(-D), ta tính P(B|-D)**
+
+**Bước 2: Thực hiện giống suy diễn nhân quả**
+
+Kết quả sau khi thực hiện bước 1 và bước 2 là:
+
+* **P(-D) = 0.86**
+* **P(-B|-D) = 0.602 / 0.86 = 0.602 / P(-D)**
+
+
+📌 Slide 28:
+# Phương pháp chung
+
+**Áp dụng cho cả suy diễn nhân quả và suy diễn chuẩn đoán**
+
+**Bước 1:** Đưa xác suất điều kiện về các xác suất đồng thời
+
+**Bước 2:** Sử dụng tính độc lập xác suất trên mạng Bayes, viết lại các xác suất đồng thời dưới dạng các xác suất điều kiện của nút con khi biết các giá trị bố mẹ
+
+**Bước 3:** Sử dụng các giá trị xác suất từ bảng xác suất điều kiện để tính
+
+
+📌 Slide 29:
+# Suy Diễn Bằng Cách Lấy Mẫu
+
+Hình ảnh hiển thị một slide thuyết trình với tiêu đề **Suy Diễn Bằng Cách Lấy Mẫu**. Slide liệt kê ba điểm chính:
+
+* **Trong trường hợp tổng quát:** Suy diễn trên mạng Bayes là NP-đầy đủ (rất phức tạp).
+* **Có thể suy diễn xấp xỉ bằng cách lấy mẫu.**
+* **Sinh ra các bộ giá trị của biến có cùng xác suất đồng thời của mạng.**
+
+Ngoài nội dung chính, hình ảnh còn bao gồm:
+
+* Một biểu tượng minh họa cho việc lấy mẫu.
+* Hình ảnh của một người đàn ông, có thể là giảng viên hoặc nhà nghiên cứu.
+* Logo của Naver PTIT.
+
+
+📌 Slide 30:
+# Lấy mẫu (1/2)
+
+Hình ảnh mô tả một sơ đồ minh họa quá trình lấy mẫu dựa trên xác suất. Sơ đồ bao gồm các bước sau:
+
+* **Bước 1:** Chọn ngẫu nhiên S = true với xác suất 0.3.
+* **Bước 2:** Chọn ngẫu nhiên M = true với xác suất 0.6.
+* **Bước 3:** Chọn ngẫu nhiên L: xác suất L = true phụ thuộc vào giá trị của S, M ở trên.
+* **Bước 4:** Giả sử bước trên sinh M = true, S = false, L = true với xác suất 0.1.
+* **Bước 5:** Chọn ngẫu nhiên R với xác suất phụ thuộc giá trị của L.
+* **Bước 6:** Chọn ngẫu nhiên T' với xác suất phụ thuộc giá trị của R.
+
+**Kết quả:**
+* P(S) = 0.3
+* P(L|M,S) = 0.05
+* P(L|M,R) = 0.1
+* P(R|M,L) = 0.3
+* P(R|M,T') = 0.6
+
+
+📌 Slide 31:
+# Lấy mẫu (2/2)
+
+**Giả sử cần tính:** P(R = True | T = True, S = False)
+
+**Lấy mẫu nhiều lần theo cách ở trên, mỗi bộ giá trị sinh ra được gọi là một mẫu.**
+
+**Tính số lần xảy ra những sự kiện sau:**
+
+* **Nc:** Số mẫu có T = True và S = False
+* **Ns:** Số mẫu có R = True, T = True và S = False
+* **N:** Tổng số mẫu
+
+**Nếu N đủ lớn:**
+
+* **P(Nc/N):** Xấp xỉ xác suất P(T = True and S = False)
+* **P(Ns/N):** Xấp xỉ xác suất P(R = True, T = True, S = False)
+
+
+📌 Slide 32:
+# Lấy mẫu tổng quát
+
+Hình ảnh cung cấp thông tin về cách lấy mẫu số lượng đủ lớn để tính toán P(E1|E2).  Dưới đây là tóm tắt các bước:
+
+* **Cần tính P(E1|E2):** Tính tỷ lệ phụ thuộc giữa hai yếu tố E1 và E2.
+* **Lấy mẫu số lượng đủ lớn:** Xác định tổng số mẫu (N).
+* **Tính số lượng:**
+    * **Nc:** Số mẫu có E2
+    * **Ns:** Số mẫu có E1 và E2
+    * **N:** Tổng số mẫu
+* **Nếu N đủ lớn, ta có:** P(E1|E2) = Ns/N
+

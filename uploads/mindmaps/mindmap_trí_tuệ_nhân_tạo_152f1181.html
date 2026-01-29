@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ tư duy: trí tuệ nhân tạo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .container {
+            width: 100%;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+        #mindmap {
+            width: 100%;
+            height: 100%;
+        }
+        .mm-node {
+            cursor: pointer;
+        }
+        .mm-node circle {
+            stroke-width: 2px;
+        }
+        .mm-node.node-central circle {
+            fill: #ffeb3b;
+            stroke: #d2ac47;
+        }
+        .mm-node.node-branch circle {
+            fill: #90caf9;
+            stroke: #5b9bd5;
+        }
+        .mm-node.node-leaf circle {
+            fill: #a5d6a7;
+            stroke: #5cb85c;
+        }
+        .mm-node.selected circle {
+            stroke: #ff5722;
+            stroke-width: 3px;
+        }
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+        .controls button {
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .controls button:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/d3@6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.14.4"></script>
+</head>
+<body>
+    <div class="header">
+        <h2>Sơ đồ tư duy: trí tuệ nhân tạo</h2>
+    </div>
+    <div class="container">
+        <svg id="mindmap"></svg>
+    </div>
+    <div class="controls">
+        <button id="zoomIn">+</button>
+        <button id="zoomOut">-</button>
+        <button id="resetView">↻</button>
+    </div>
+    <script>
+        const mindmapData = {"topic": "Tr\u00ed tu\u1ec7 nh\u00e2n t\u1ea1o (AI)", "children": [{"text": "\u0110\u1ecbnh ngh\u0129a", "note": "Slide 17", "children": [{"text": "X\u00e2y d\u1ef1ng th\u1ef1c th\u1ec3 th\u00f4ng minh", "note": "Slide 17"}, {"text": "H\u1ec7 th\u1ed1ng h\u00e0nh \u0111\u1ed9ng nh\u01b0 ng\u01b0\u1eddi", "note": "Slide 17"}, {"text": "H\u1ec7 th\u1ed1ng suy ngh\u0129 nh\u01b0 ng\u01b0\u1eddi", "note": "Slide 17"}, {"text": "H\u1ec7 th\u1ed1ng suy ngh\u0129 h\u1ee3p l\u00fd", "note": "Slide 17"}, {"text": "H\u1ec7 th\u1ed1ng h\u00e0nh \u0111\u1ed9ng h\u1ee3p l\u00fd", "note": "Slide 17"}]}, {"text": "\u1ee8ng d\u1ee5ng", "children": [{"text": "Tr\u1ea3 l\u1eddi c\u00e2u h\u1ecfi t\u1ef1 \u0111\u1ed9ng (Question Answering)", "note": "Slide 7"}, {"text": "Nh\u1eadn d\u1ea1ng ti\u1ebfng n\u00f3i (Automatic Speech Recognition - ASR)", "note": "Slide 5"}, {"text": "H\u1ec7 t\u01b0 v\u1ea5n (Recommender Systems)", "note": "Slide 12"}, {"text": "C\u00e1c \u1ee9ng d\u1ee5ng kh\u00e1c (h\u00ecnh \u1ea3nh)", "note": "Slide 8"}]}]};
+        
+        // Transform data to markmap format
+        function transformData(data) {
+            const result = {
+                t: data.topic || data.text,
+                d: data.note
+            };
+            
+            if (data.children && data.children.length > 0) {
+                result.c = data.children.map(child => transformData(child));
+            }
+            
+            return result;
+        }
+        
+        // Initialize markmap
+        const initializeMarkmap = () => {
+            const svg = document.getElementById('mindmap');
+            const mm = markmap.Markmap.create(svg, {
+                zoom: true,
+                pan: true,
+                autoFit: true,
+            }, transformData(mindmapData));
+            
+            // Add zoom controls
+            document.getElementById('zoomIn').addEventListener('click', () => {
+                mm.transition().scale(mm.state.scale * 1.25);
+            });
+            
+            document.getElementById('zoomOut').addEventListener('click', () => {
+                mm.transition().scale(mm.state.scale * 0.8);
+            });
+            
+            document.getElementById('resetView').addEventListener('click', () => {
+                mm.fit();
+            });
+        };
+        
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', initializeMarkmap);
+    </script>
+</body>
+</html>
+        

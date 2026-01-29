@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar styles - Áp dụng cho các element có class .custom-scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px; /* Thêm chiều cao cho scrollbar ngang nếu cần */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5); /* gray-800 với opacity */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.7); /* gray-600 với opacity */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.9); /* gray-500 với opacity */
+}
+
+/* Animation for fade-in effect (Giữ lại một định nghĩa) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Font chữ mặc định */
+body {
+  font-family: 'Inter', sans-serif;
+  @apply bg-gray-900 text-gray-100; /* Thêm màu nền và chữ mặc định nếu muốn */
+}
+
+/* Hiệu ứng cho nút (Giữ lại nếu bạn có thể dùng) */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+/* XÓA BỎ các quy tắc scrollbar global ở đây nếu có */
+/*
+::-webkit-scrollbar { ... }
+::-webkit-scrollbar-track { ... }
+::-webkit-scrollbar-thumb { ... }
+::-webkit-scrollbar-thumb:hover { ... }
+*/
