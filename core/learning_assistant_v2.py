@@ -48,7 +48,7 @@ class LearningAssistant:
     # Modify __init__ to accept mongo_collection
     def __init__(self,
                  mongo_collection: Optional[Collection], # Accept MongoDB collection object
-                 collection_name: str = config.MILVUS_COLLECTION,
+                 collection_name: str = config.CHROMA_COLLECTION,
                  model_name: str = config.LLM_MODEL_NAME,
                  api_key: Optional[str] = config.GOOGLE_API_KEY,
                  temperature: float = config.LLM_TEMPERATURE):
@@ -57,8 +57,6 @@ class LearningAssistant:
         self.retriever = EnsembleRetriever(
             collection_name=collection_name,
             model_name=config.EMBEDDING_MODEL,
-            host=config.MILVUS_HOST,
-            port=config.MILVUS_PORT,
             vector_weight=config.VECTOR_WEIGHT,
             bm25_weight=config.BM25_WEIGHT,
             top_k=config.RETRIEVER_TOP_K

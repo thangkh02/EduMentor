@@ -39,8 +39,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 async def lifespan(app: FastAPI):
     global assistant, document_indexer
     mongo_collection = None # Initialize mongo_collection to None
-    milvus_collection_name = os.getenv("MILVUS_COLLECTION_NAME", config.DEFAULT_COLLECTION_NAME) # Use config default
-    logger.info(f"Starting EduMentor API with Milvus collection: {milvus_collection_name}")
+    chroma_collection_name = os.getenv("CHROMA_COLLECTION", config.DEFAULT_COLLECTION_NAME) # Use config default
+    logger.info(f"Starting EduMentor API with Chroma collection: {chroma_collection_name}")
 
     # --- Get MongoDB Connection ---
     try:
@@ -58,9 +58,9 @@ async def lifespan(app: FastAPI):
         # Pass the mongo_collection (which might be None) to the assistant
         assistant = LearningAssistant(
             mongo_collection=mongo_collection,
-            collection_name=milvus_collection_name
+            collection_name=chroma_collection_name
         )
-        document_indexer = DocumentIndexer(collection_name=milvus_collection_name)
+        document_indexer = DocumentIndexer(collection_name=chroma_collection_name)
         logger.info("LearningAssistant and DocumentIndexer initialized successfully")
         yield # Application runs here
     except Exception as e:

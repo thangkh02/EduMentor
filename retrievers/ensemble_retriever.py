@@ -3,72 +3,82 @@ import json
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Optional, Any
-from pymilvus import Collection, connections, utility
+import chromadb
 from sentence_transformers import SentenceTransformer, util
 from rank_bm25 import BM25Okapi
+from config import settings
 
 class EnsembleRetriever:
-    """Retrieves documents using vector search (Milvus) and BM25  search."""
+    """Retrieves documents using vector search (ChromaDB) and BM25 search."""
     
-    def __init__(self, collection_name: str, model_name: str = "all-MiniLM-L6-v2",
-                 host: str = "localhost", port: str = "19530", vector_weight: float = 0.7,
-                 bm25_weight: float = 0.3, top_k: int = 4, max_docs_bm25: int = 10000, 
-                 batch_size_load: int = 1000):
+    def __init__(self, collection_name: str = settings.CHROMA_COLLECTION, model_name: str = "all-MiniLM-L6-v2",
+                 vector_weight: float = 0.7, bm25_weight: float = 0.3, top_k: int = 4, 
+                 max_docs_bm25: int = 10000, batch_size_load: int = 1000):
  
         self.collection_name = collection_name
-        self.host = host
-        self.port = port
         self.vector_weight = vector_weight
         self.bm25_weight = bm25_weight
         self.top_k = top_k
         self.max_docs_bm25 = max_docs_bm25
-        self.batch_size_load = batch_size_load
         self.collection = None
         self.bm25 = None
         self.bm25_docs = []
-
+        
         # Load SentenceTransformer model
         self.model = SentenceTransformer(model_name)
-
-        # Connect to Milvus and initialize BM25
+        
+        # Connect to ChromaDB
         self._setup()
 
     def _setup(self):
-        """Simplified setup for Milvus and BM25."""
-        connections.connect(host=self.host, port=self.port)
-        if utility.has_collection(self.collection_name):
-            self.collection = Collection(self.collection_name)
-            self.collection.load()
+        """Setup ChromaDB client and load BM25."""
+        try:
+            self.client = chromadb.PersistentClient(path=str(settings.CHROMA_DB_PATH))
+            self.collection = self.client.get_or_create_collection(name=self.collection_name)
             self._initialize_bm25()
+        except Exception as e:
+            print(f"Error initializing ChromaDB: {e}")
 
     def _initialize_bm25(self):
-        """Loads documents and initializes BM25 index."""
+        """Loads documents from Chroma and initializes BM25 index."""
         if not self.collection:
             return
         
-        expr = "id >= 0"
-        offset = 0
-        fetched_docs = []
-        
-        while len(fetched_docs) < self.max_docs_bm25:
-            results = self.collection.query(
-                expr=expr, output_fields=["id", "text", "metadata"],
-                limit=self.batch_size_load, offset=offset
+        # Fetch all documents (limit by max_docs_bm25)
+        # Chroma get() without ids returns all if limit is not set? Default limit is none?
+        # Use limit=self.max_docs_bm25
+        try:
+            results = self.collection.get(
+                limit=self.max_docs_bm25, 
+                include=["documents", "metadatas"]
             )
-            if not results:
-                break
-            fetched_docs.extend(
-                {"id": item["id"], "text": item["text"], "metadata": item.get("metadata", "{}")}
-                for item in results if isinstance(item["text"], str)
-            )
-            offset += len(results)
-        
-        if fetched_docs:
-            self.bm25_docs = fetched_docs[:self.max_docs_bm25]
-            tokenized_corpus = [self._preprocess_text(doc["text"]) for doc in self.bm25_docs]
-            valid_corpus = [tokens for tokens in tokenized_corpus if tokens]
-            if valid_corpus:
-                self.bm25 = BM25Okapi(valid_corpus)
+            
+            docs = results.get("documents", [])
+            metadatas = results.get("metadatas", [])
+            ids = results.get("ids", [])
+            
+            if not docs:
+                return
+
+            self.bm25_docs = []
+            for i, doc_text in enumerate(docs):
+                meta = metadatas[i] if i < len(metadatas) else {}
+                # Ensure metadata has the structure expected by the rest of the app
+                # Indexer stores 'metadata' as a json string inside the metadata dict
+                # We normalize it here
+                self.bm25_docs.append({
+                    "id": ids[i],
+                    "text": doc_text,
+                    "metadata": meta.get("metadata", "{}") # Default to empty json string
+                })
+                
+            if self.bm25_docs:
+                tokenized_corpus = [self._preprocess_text(doc["text"]) for doc in self.bm25_docs]
+                valid_corpus = [tokens for tokens in tokenized_corpus if tokens]
+                if valid_corpus:
+                    self.bm25 = BM25Okapi(valid_corpus)
+        except Exception as e:
+            print(f"Error initializing BM25: {e}")
 
     def _preprocess_text(self, text: str) -> List[str]:
         """Preprocesses text for BM25."""
@@ -109,66 +119,63 @@ class EnsembleRetriever:
         return self._rerank_results(query, combined_results)[:effective_top_k]
 
     def _vector_search_sync(self, query: str, top_k: int, filter_metadata: Optional[Dict] = None) -> List[Dict[str, Any]]:
-
-        if not self.collection or not isinstance(self.collection, Collection):
-            print("Warning: Milvus collection not available for vector search.") # Added warning
+        if not self.collection:
+            print("Warning: Chroma collection not available for vector search.")
             return []
 
         # Generate query embedding
-        query_embedding = self.model.encode(query, normalize_embeddings=True)
-        search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
+        query_embedding = self.model.encode(query, normalize_embeddings=True).tolist()
+        
+        # Build filter if needed (Chroma filter syntax)
+        # Assuming filter_metadata is a simple dict of exact matches
+        chroma_filter = None
+        if filter_metadata:
+             # Chroma requires a specific filter format. Simple exact match:
+             # {"key": "value"} or {"$and": [...]}
+             # The existing code passed complex filters sometimes? Let's implement simple equality
+             keys = list(filter_metadata.keys())
+             if len(keys) == 1:
+                 chroma_filter = {keys[0]: filter_metadata[keys[0]]}
+             elif len(keys) > 1:
+                 chroma_filter = {"$and": [{k: v} for k, v in filter_metadata.items()]}
 
-
-        expr = "id >= 0"
-        if filter_metadata is not None and filter_metadata:  # Check for non-empty dict
-            expr_parts = [expr]
-            for key, value in filter_metadata.items():
-                
-                safe_value = json.dumps(value) 
-                expr_parts.append(f"metadata['{key}'] == {safe_value}")
-                # Or using json_contains if value is complex or you need partial match:
-                # expr_parts.append(f"json_contains(metadata, '{{\"{key}\": {safe_value}}}')")
-            expr = " and ".join(expr_parts)
-            print(f"Using filter expression: {expr}") # Debugging print
-
-        # Perform vector search
-        try: # Add try-except for robustness
-            results = self.collection.search(
-                data=[query_embedding.tolist()],  # Convert numpy array to list
-                anns_field="embedding",          # Field storing embeddings in Milvus
-                param=search_params,             # Search parameters
-                limit=top_k,                     # Limit to top_k results
-                expr=expr,                       # Filter expression
-                output_fields=["id", "text", "metadata"]  # Fields to return
+        try:
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=top_k,
+                where=chroma_filter,
+                include=["documents", "metadatas", "distances"]
             )
         except Exception as e:
-            print(f"Error during Milvus search: {e}") # Log the error
+            print(f"Error during Chroma search: {e}")
             return []
 
-
-        # Process search results
         output = []
-        if results and len(results) > 0 and len(results[0]) > 0:
-            for hit in results[0]:
-                score = 1.0 / (1.0 + hit.distance) if hit.distance >= 0 else 1.0
-                # --- FIX ---
-                text_content = getattr(hit.entity, 'text', '') # Default to empty string if 'text' attribute missing
-                metadata_content = getattr(hit.entity, 'metadata', '{}') # Default to empty JSON string if 'metadata' attribute missing
-                # --- END OF FIX ---
+        # results entries are lists of lists (one per query)
+        if results and results['ids'] and len(results['ids']) > 0:
+            ids = results['ids'][0]
+            documents = results['documents'][0]
+            metadatas = results['metadatas'][0]
+            distances = results['distances'][0]
+            
+            for i, doc_id in enumerate(ids):
+                # Convert L2 distance to similarity score (0 to 1)
+                distance = distances[i]
+                score = 1.0 / (1.0 + distance)
+                
+                # Metadata handling
+                meta = metadatas[i] if metadatas and i < len(metadatas) else {}
+                # Retrieve the 'metadata' json string we stored
+                metadata_content = meta.get("metadata", "{}")
 
                 output.append({
-                    "id": hit.id,
-                    "text": text_content,           # Use the retrieved text
-                    "score": score,                 # Similarity score
-                    "source": "vector",             # Source indicator
-                    "metadata": metadata_content    # Use the retrieved metadata
+                    "id": doc_id,
+                    "text": documents[i],
+                    "score": score,
+                    "source": "vector",
+                    "metadata": metadata_content
                 })
-        elif results and len(results) > 0 and len(results[0]) == 0:
-             print("Vector search returned results structure, but no hits found (possibly due to filter).") # More info
-        elif not results:
-             print("Vector search returned None or empty results.") # More info
-
-
+                
         return output
 
     def _bm25_search_sync(self, query: str, top_k: int) -> List[Dict[str, Any]]:
@@ -181,20 +188,25 @@ class EnsembleRetriever:
             return []
         
         bm25_scores = self.bm25.get_scores(tokenized_query)
-        top_indices = sorted(
-            [i for i, score in enumerate(bm25_scores) if score > 0],
-            key=lambda i: bm25_scores[i], reverse=True
-        )[:top_k]
+        # Get indices of top k scores
+        top_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:top_k]
 
-        return [
-            {"id": self.bm25_docs[i]["id"], "text": self.bm25_docs[i]["text"], 
-             "score": bm25_scores[i], "source": "bm25", "metadata": self.bm25_docs[i]["metadata"]}
-            for i in top_indices if i < len(self.bm25_docs)
-        ]
+        results = []
+        for i in top_indices:
+            if bm25_scores[i] > 0:
+                 results.append({
+                    "id": self.bm25_docs[i]["id"], 
+                    "text": self.bm25_docs[i]["text"], 
+                    "score": bm25_scores[i], 
+                    "source": "bm25", 
+                    "metadata": self.bm25_docs[i]["metadata"]
+                })
+        return results
 
     def _combine_results(self, vector_results: List[Dict[str, Any]], bm25_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Combines vector and BM25 results."""
         combined_dict: Dict[Any, Dict] = {}
+        # Avoid division by zero
         max_vec_score = max([r["score"] for r in vector_results] + [1e-9])
         max_bm25_score = max([r["score"] for r in bm25_results] + [1e-9])
 
@@ -231,7 +243,16 @@ class EnsembleRetriever:
         processed_results = []
         for i, result in enumerate(results):
             final_score = 0.6 * similarities[i] + 0.4 * result["score"]
-            metadata = result["metadata"] if isinstance(result["metadata"], dict) else json.loads(result["metadata"] or "{}")
+            # Parse metadata json string safely
+            meta_str = result["metadata"]
+            if isinstance(meta_str, dict):
+                metadata = meta_str
+            else:
+                try:
+                    metadata = json.loads(meta_str)
+                except:
+                    metadata = {}
+                    
             processed_results.append({
                 "text": result["text"], "score": final_score, "source": ", ".join(result["sources"]),
                 "metadata": result["metadata"], "title": metadata.get("title", "N/A"),
@@ -241,7 +262,6 @@ class EnsembleRetriever:
         return processed_results
 
     def close(self):
- 
-        if self.collection:
-            self.collection.release()
-        connections.disconnect("default")
+        # Chroma PersistentClient doesn't strictly need closing, but we can set to None
+        self.collection = None
+        self.client = None

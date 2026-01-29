@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  FiClock, FiLoader, FiBarChart2, FiCheckCircle, FiAlertTriangle, 
+import {
+  FiClock, FiLoader, FiBarChart2, FiCheckCircle, FiAlertTriangle,
   FiActivity, FiBook, FiCalendar, FiPieChart, FiArrowUp, FiUser,
   FiAward
 } from 'react-icons/fi';
@@ -17,14 +17,14 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
   // Xử lý khi nhận được kết quả từ backend
   useEffect(() => {
     console.log('Progress tracker received result:', result);
-    
+
     // Reset thông báo thành công và dữ liệu đã phân tích
     setSuccessMessage('');
     setParsedData(null);
-    
+
     // Nếu không có kết quả, không cần xử lý gì
     if (!result) return;
-    
+
     // Process the result based on its type
     try {
       if (typeof result === 'string') {
@@ -36,7 +36,7 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
           try {
             const jsonData = JSON.parse(result);
             setParsedData(jsonData);
-            
+
             // Check for success message in the parsed JSON
             if (jsonData.message && jsonData.message.includes('Đã cập nhật tiến độ cho')) {
               setSuccessMessage(jsonData.message);
@@ -51,7 +51,7 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
         if (result.response && typeof result.response === 'object') {
           // API wrapper format - object inside response property
           setParsedData(result.response);
-          
+
           if (result.response.message && result.response.message.includes('Đã cập nhật tiến độ cho')) {
             setSuccessMessage(result.response.message);
           }
@@ -64,7 +64,7 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
             try {
               const jsonData = JSON.parse(result.response);
               setParsedData(jsonData);
-              
+
               if (jsonData.message && jsonData.message.includes('Đã cập nhật tiến độ cho')) {
                 setSuccessMessage(jsonData.message);
               }
@@ -75,13 +75,13 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
         } else {
           // Direct object format
           setParsedData(result);
-          
+
           if (result.message && result.message.includes('Đã cập nhật tiến độ cho')) {
             setSuccessMessage(result.message);
           }
         }
       }
-      
+
       // Debug the final parsed data
       console.log('Parsed data:', parsedData);
     } catch (e) {
@@ -93,18 +93,18 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
   const handleUpdateProgress = (e) => {
     e.preventDefault();
     if (!user || !token) return;
-    
+
     const subjectToUpdate = subjectInput.trim();
     const progressToUpdate = progressInput.trim();
 
     if (!subjectToUpdate || !progressToUpdate) return;
-    
+
     const progressValue = parseInt(progressToUpdate, 10);
     if (isNaN(progressValue) || progressValue < 0 || progressValue > 100) return;
-    
+
     const updateInputString = `${subjectToUpdate}: ${progressValue}`;
     onSubmit(updateInputString);
-    
+
     // Sau khi cập nhật, tự động gửi yêu cầu hiển thị tất cả tiến độ
     if (successMessage) {
       setTimeout(() => {
@@ -156,8 +156,8 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
     return (
       <div className="space-y-4">
         {parsedData.subjects.map((subject, index) => (
-          <div 
-            key={`subject-${index}`} 
+          <div
+            key={`subject-${index}`}
             className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 hover:border-blue-500 transition-all shadow-md"
           >
             <div className="flex justify-between items-center mb-3">
@@ -173,7 +173,7 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
                 </span>
               </div>
             </div>
-            
+
             {/* Thanh tiến độ */}
             <div className="w-full bg-gray-900/70 rounded-full h-2 mb-3 overflow-hidden">
               <div
@@ -183,7 +183,7 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
                 <div className="h-full w-full bg-opacity-40 bg-white animate-pulse"></div>
               </div>
             </div>
-            
+
             {/* Thông tin chi tiết */}
             <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-400">
               {subject.updated_at && (
@@ -192,19 +192,19 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
                   <span>Cập nhật: {formatDate(subject.updated_at)}</span>
                 </div>
               )}
-              
+
               <div className="flex items-center bg-gray-900/30 px-2 py-1 rounded">
                 <FiPieChart className="mr-1.5 text-yellow-400" size={14} />
                 <span>{subject.doc_count || 0} tài liệu</span>
               </div>
-              
+
               {subject.plan_created_at && (
                 <div className="flex items-center bg-gray-900/30 px-2 py-1 rounded">
                   <FiCalendar className="mr-1.5 text-green-400" size={14} />
                   <span>Kế hoạch: {formatDate(subject.plan_created_at)}</span>
                 </div>
               )}
-              
+
               {subject.progress === 100 && (
                 <div className="flex items-center bg-green-900/20 px-2 py-1 rounded border border-green-800">
                   <FiAward className="mr-1.5 text-green-400" size={14} />
@@ -230,11 +230,11 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
           <FiActivity className="mr-2 text-blue-400" />
           Hoạt động gần đây
         </h3>
-        
+
         <div className="space-y-2">
           {parsedData.activities.map((activity, index) => (
-            <div 
-              key={`activity-${index}`} 
+            <div
+              key={`activity-${index}`}
               className="flex items-start py-2 px-3 border-b border-gray-700 last:border-b-0 hover:bg-gray-800/40 rounded transition-colors"
             >
               <div className="bg-blue-900/30 h-6 w-6 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
@@ -254,7 +254,12 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
   // Hiển thị thông báo nếu có
   const renderMessage = () => {
     if (!parsedData || !parsedData.message) return null;
-    
+
+    // Nếu là thông báo "Chưa có dữ liệu", ẩn nó đi theo yêu cầu người dùng
+    if (parsedData.message.includes("Chưa có dữ liệu tiến độ")) {
+      return null;
+    }
+
     return (
       <div className="bg-gray-800/70 border border-gray-600 rounded-lg p-3 mb-4">
         <p className="text-gray-300">{parsedData.message}</p>
@@ -265,10 +270,10 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
   // Kiểm tra xem có kết quả để hiển thị không
   const hasDisplayableResult = () => {
     if (!parsedData) return false;
-    
+
     // Kiểm tra xem có dữ liệu có ý nghĩa hay không
     return (
-      (parsedData.subjects && parsedData.subjects.length > 0) || 
+      (parsedData.subjects && parsedData.subjects.length > 0) ||
       (parsedData.activities && parsedData.activities.length > 0) ||
       parsedData.message
     );
@@ -277,7 +282,7 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
   // For debugging - display raw data
   const renderDebugInfo = () => {
     if (!result) return null;
-    
+
     return (
       <div className="mt-4 bg-gray-900 rounded-lg p-3 border border-yellow-700 overflow-x-auto">
         <h4 className="text-yellow-500 text-xs font-mono mb-2">Debug Raw Data:</h4>
@@ -372,18 +377,15 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
             <span>{error}</span>
           </div>
         )}
-        
+
         {successMessage && !loading && !error && (
           <div className="mt-6 text-green-300 bg-green-900/30 p-4 rounded-md flex items-center text-sm border border-green-700">
             <FiCheckCircle className="mr-2 flex-shrink-0" />
             <span>{successMessage}</span>
           </div>
         )}
-        
-        {/* Debug info */}
-        {result && (
-          renderDebugInfo()
-        )}
+
+        {/* Debug info removed for cleaner UI */}
       </div>
 
       {/* Khu vực hiển thị tiến độ đã lấy */}
@@ -394,7 +396,7 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
             <span>Đang tải dữ liệu tiến độ...</span>
           </div>
         )}
-        
+
         {!loading && !error && hasDisplayableResult() && (
           <div className="bg-gray-800/40 rounded-lg shadow-lg overflow-hidden">
             <div className="p-4 border-b border-gray-700 bg-gray-800/70">
@@ -407,23 +409,23 @@ const ProgressTracker = ({ onSubmit, result, loading, error }) => {
                 <span>{user?.username || user?.name || 'Người dùng'}</span>
               </div>
             </div>
-            
+
             <div className="p-5">
               {/* Hiển thị thông báo nếu có */}
               {renderMessage()}
-              
+
               {/* Hiển thị danh sách môn học */}
               {renderSubjects()}
-              
+
               {/* Hiển thị hoạt động gần đây */}
               {renderActivities()}
             </div>
           </div>
         )}
-        
+
         {!loading && !error && !successMessage && !hasDisplayableResult() && (
-           <div className="flex flex-col items-center justify-center h-full text-gray-500 py-10">
-             <FiBarChart2 className="text-6xl opacity-30 mb-4" />
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 py-10">
+            <FiBarChart2 className="text-6xl opacity-30 mb-4" />
             <p className="text-lg opacity-70">Cập nhật tiến độ học tập của bạn</p>
             <p className="text-sm opacity-50 mt-2">Dữ liệu tiến độ sẽ hiển thị ở đây</p>
           </div>

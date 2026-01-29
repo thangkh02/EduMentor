@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
-from config.settings import MONGODB_HOST, MONGODB_PORT, MONGODB_DB_NAME, MONGODB_COLLECTION
+from config.settings import MONGODB_HOST, MONGODB_PORT, MONGODB_DB_NAME, MONGODB_COLLECTION, MONGODB_URI
 from config.settings import JWT_SECRET_KEY, JWT_ALGORITHM, JWT_ACCESS_TOKEN_EXPIRE_MINUTES
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -33,7 +33,13 @@ def get_mongo_connection():
     
     if not mongo_client:
         try:
-            mongo_client = MongoClient(MONGODB_HOST, MONGODB_PORT, serverSelectionTimeoutMS=5000)
+            if MONGODB_URI:
+                print(f"Authentication module: Connecting to MongoDB using URI")
+                mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+            else:
+                print(f"Authentication module: Connecting to MongoDB at {MONGODB_HOST}:{MONGODB_PORT}")
+                mongo_client = MongoClient(MONGODB_HOST, MONGODB_PORT, serverSelectionTimeoutMS=5000)
+            
             mongo_client.admin.command('ismaster') 
             db = mongo_client[MONGODB_DB_NAME]
             users_collection = db[MONGODB_COLLECTION]
@@ -49,11 +55,16 @@ def get_mongo_connection():
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Kiểm tra mật khẩu người dùng nhập vào với mật khẩu đã hash trong DB"""
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncate to 72 bytes to match hashing behavior
+    password_bytes = plain_password.encode('utf-8')[:72]
+    return pwd_context.verify(password_bytes, hashed_password)
 
 def get_password_hash(password: str) -> str:
     """Tạo hash cho mật khẩu mới"""
-    return pwd_context.hash(password)
+    # Bcrypt has a 72-byte limit, so truncate to 72 bytes
+    # Pass bytes directly to avoid UTF-8 decode issues
+    password_bytes = password.encode('utf-8')[:72]
+    return pwd_context.hash(password_bytes)
 
 def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
     """Xác thực người dùng bằng username và password"""

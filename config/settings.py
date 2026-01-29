@@ -4,13 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- Milvus Configuration ---
-MILVUS_HOST = os.getenv("MILVUS_HOST", "localhost")
-MILVUS_PORT = os.getenv("MILVUS_PORT", "19530")
-# Lấy collection name từ env, nếu không có thì dùng default
-# Giá trị này có thể bị ghi đè bởi lifespan nếu cần
-DEFAULT_COLLECTION_NAME = "learning_docs_v3"
-MILVUS_COLLECTION = os.getenv("MILVUS_COLLECTION", DEFAULT_COLLECTION_NAME)
+# --- ChromaDB Configuration ---
+# Lưu trữ database ngay trong thư mục data của project để không cần cài đặt gì thêm
+CHROMA_DB_PATH = os.path.join(os.getcwd(), "data", "chroma_db")
+os.makedirs(CHROMA_DB_PATH, exist_ok=True)
+
+DEFAULT_COLLECTION_NAME = "learning_docs"
+CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", DEFAULT_COLLECTION_NAME)
 
 # --- MongoDB Configuration ---
 MONGODB_HOST = os.getenv("MONGODB_HOST", "localhost") 

@@ -13,13 +13,13 @@ const ConceptExplainer = ({ onSubmit, result, loading, error }) => {
   const [localError, setLocalError] = useState(null);
   const [loadingProgress, setLoadingProgress] = useState(0); // For progress indicator
   const { token } = useAuth();
-  
+
   // Loading animation effect
   useEffect(() => {
     let progressInterval;
     if (loading) {
       setLoadingProgress(0);
-      
+
       // Simulate progress increasing over time, but never reaching 100% until complete
       progressInterval = setInterval(() => {
         setLoadingProgress(prev => {
@@ -35,10 +35,10 @@ const ConceptExplainer = ({ onSubmit, result, loading, error }) => {
       const resetTimeout = setTimeout(() => {
         setLoadingProgress(0);
       }, 1000);
-      
+
       return () => clearTimeout(resetTimeout);
     }
-    
+
     return () => clearInterval(progressInterval);
   }, [loading]);
 
@@ -46,6 +46,18 @@ const ConceptExplainer = ({ onSubmit, result, loading, error }) => {
   useEffect(() => {
     if (result) {
       console.log('ConceptExplainer received result:', result);
+
+      // KIỂM TRA QUAN TRỌNG: Loại bỏ kết quả nếu nó không phải của Concept Explainer
+      // Nếu kết quả chứa 'subjects' hoặc 'activities' -> Đây là của Progress Tracker, BỎ QUA NGAY
+      if (result.response && (result.response.subjects || result.response.activities)) {
+        console.warn("Ignoring result meant for Progress Tracker");
+        return;
+      }
+      if (result.subjects || result.activities) {
+        console.warn("Ignoring result meant for Progress Tracker (direct object)");
+        return;
+      }
+
       try {
         // Process result based on type
         if (typeof result === 'string') {
@@ -57,6 +69,11 @@ const ConceptExplainer = ({ onSubmit, result, loading, error }) => {
             setExplanation(null);
           } else if (result.response || result.content) {
             const content = result.response || result.content;
+            // Double check nested response
+            if (typeof content === 'object' && (content.subjects || content.activities)) {
+              console.warn("Ignoring nested result meant for Progress Tracker");
+              return;
+            }
             setExplanation(typeof content === 'string' ? content : JSON.stringify(content, null, 2));
             setLocalError(null);
           } else {
@@ -81,15 +98,15 @@ const ConceptExplainer = ({ onSubmit, result, loading, error }) => {
     if (!concept.trim() || !token) {
       return;
     }
-    
+
     // Clear previous results
     setExplanation(null);
     setLocalError(null);
-    
+
     // Submit request
     onSubmit(concept);
   };
-  
+
   // Combine errors from props and local state
   const displayError = error || localError;
 
@@ -112,14 +129,14 @@ const ConceptExplainer = ({ onSubmit, result, loading, error }) => {
         </code>
       );
     },
-    h1: ({node, ...props}) => <h1 className="text-2xl font-bold border-b border-gray-600 pb-2 mb-4" {...props} />,
-    h2: ({node, ...props}) => <h2 className="text-xl font-bold border-b border-gray-600 pb-1 mb-3" {...props} />,
-    h3: ({node, ...props}) => <h3 className="text-lg font-semibold mb-2" {...props} />,
-    p: ({node, ...props}) => <p className="mb-3 leading-relaxed" {...props} />,
-    ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 pl-4" {...props} />,
-    ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 pl-4" {...props} />,
-    li: ({node, ...props}) => <li className="mb-1" {...props} />,
-    a: ({node, ...props}) => <a className="text-blue-400 hover:underline" {...props} />,
+    h1: ({ node, ...props }) => <h1 className="text-2xl font-bold border-b border-gray-600 pb-2 mb-4" {...props} />,
+    h2: ({ node, ...props }) => <h2 className="text-xl font-bold border-b border-gray-600 pb-1 mb-3" {...props} />,
+    h3: ({ node, ...props }) => <h3 className="text-lg font-semibold mb-2" {...props} />,
+    p: ({ node, ...props }) => <p className="mb-3 leading-relaxed" {...props} />,
+    ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-3 pl-4" {...props} />,
+    ol: ({ node, ...props }) => <ol className="list-decimal list-inside mb-3 pl-4" {...props} />,
+    li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+    a: ({ node, ...props }) => <a className="text-blue-400 hover:underline" {...props} />,
   };
 
   return (
@@ -182,10 +199,10 @@ const ConceptExplainer = ({ onSubmit, result, loading, error }) => {
             <div className="mt-6 text-yellow-300 text-center">
               <p className="font-semibold">Đang phân tích khái niệm...</p>
               <p className="text-sm text-yellow-400/70 mt-1">Vui lòng đợi trong giây lát</p>
-              
+
               {/* Progress bar */}
               <div className="w-64 h-1.5 bg-gray-700 rounded-full mt-4 overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-yellow-500 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${loadingProgress}%` }}
                 ></div>
@@ -207,7 +224,7 @@ const ConceptExplainer = ({ onSubmit, result, loading, error }) => {
               <p>Nhập khái niệm và nhấn "Giải thích" để xem kết quả.</p>
             </div>
           </div>
-        ) : null /* Don't show initial message if there's an error */ }
+        ) : null /* Don't show initial message if there's an error */}
       </div>
     </div>
   );

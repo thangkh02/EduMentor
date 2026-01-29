@@ -5,13 +5,12 @@ from datetime import datetime, timezone
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
 
+from config.settings import (
+    MONGODB_HOST, MONGODB_PORT, MONGODB_DB_NAME, MONGODB_COLLECTION, MONGODB_URI
+)
+
 logger = logging.getLogger(__name__)
 
-# MongoDB Configuration
-MONGO_HOST = "localhost"
-MONGO_PORT = 27017
-MONGO_DB_NAME = "edumentor"
-MONGO_COLLECTION_NAME = "stats"
 DEFAULT_USER_ID = "anonymous_user"
 
 class UserDataManager:
@@ -40,10 +39,22 @@ class UserDataManager:
         """Thiết lập kết nối đến MongoDB."""
         if not self.mongo_client:
             try:
-                self.mongo_client = MongoClient(MONGO_HOST, MONGO_PORT, serverSelectionTimeoutMS=5000)
+                if MONGODB_URI:
+                    logger.info(f"UserDataManager: Connecting to MongoDB using URI")
+                    self.mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+                else:
+                    logger.info(f"UserDataManager: Connecting to MongoDB at {MONGODB_HOST}:{MONGODB_PORT}")
+                    self.mongo_client = MongoClient(MONGODB_HOST, MONGODB_PORT, serverSelectionTimeoutMS=5000)
+                
                 self.mongo_client.admin.command('ismaster')
-                self.db = self.mongo_client[MONGO_DB_NAME]
-                self.collection = self.db[MONGO_COLLECTION_NAME]
+                self.db = self.mongo_client[MONGODB_DB_NAME]
+                # Sử dụng collection name từ config hoặc mặc định là "stats" nếu muốn tách biệt, 
+                # nhưng để đồng bộ ta có thể dùng chung DB name và collection name khác hoặc cùng.
+                # Ở đây code cũ dùng "stats", ta có thể giữ nguyên "stats" hoặc dùng MONGODB_COLLECTION config.
+                # Tuy nhiên, UserDataManager thường lưu stats, nên ta nên dùng collection riêng hoặc tách document.
+                # Code cũ hardcode MONGO_COLLECTION_NAME = "stats".
+                # Để an toàn, ta dùng "stats" collection trong database được config.
+                self.collection = self.db["stats"] 
                 logger.info(f"UserDataManager: Kết nối MongoDB thành công.")
             except ConnectionFailure:
                 logger.error(f"UserDataManager: Không thể kết nối đến MongoDB. Tính năng thống kê sẽ không hoạt động.")

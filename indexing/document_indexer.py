@@ -1,6 +1,6 @@
 import os
 from typing import List, Dict, Optional, Any
-from pymilvus import Collection, connections, FieldSchema, CollectionSchema, DataType, utility
+import chromadb
 from sentence_transformers import SentenceTransformer
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from mistralai import Mistral
@@ -8,42 +8,26 @@ from pathlib import Path
 from dotenv import load_dotenv
 import json
 import docx2txt
-import tempfile
+import uuid
 from docx import Document
- 
+from config import settings
 
 load_dotenv()
 
 class DocumentIndexer:
-    def __init__(self, collection_name: str, model_name: str = "all-MiniLM-L6-v2", 
-                 host: str = "localhost", port: str = "19530", chunk_size: int = 500, chunk_overlap: int = 50):
-        self.milvus_host = host
-        self.milvus_port = port
-        connections.connect(host=host, port=port)
+    def __init__(self, collection_name: str = settings.CHROMA_COLLECTION, model_name: str = "all-MiniLM-L6-v2", 
+                 chunk_size: int = 500, chunk_overlap: int = 50):
+        # Khởi tạo ChromaDB Client
+        self.client = chromadb.PersistentClient(path=str(settings.CHROMA_DB_PATH))
         self.collection_name = collection_name
+        self.collection = self.client.get_or_create_collection(name=collection_name)
+        
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.model = SentenceTransformer(model_name)
-        self.embedding_dim = self.model.get_sentence_embedding_dimension()
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=len, add_start_index=True
         )
-        self._setup_collection()
-
-    def _setup_collection(self):
-        if utility.has_collection(self.collection_name):
-            self.collection = Collection(self.collection_name)
-        else:
-            fields = [
-                FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=False),
-                FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
-                FieldSchema(name="source", dtype=DataType.VARCHAR, max_length=255),
-                FieldSchema(name="metadata", dtype=DataType.VARCHAR, max_length=65535),
-                FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=self.embedding_dim)
-            ]
-            schema = CollectionSchema(fields=fields, description=f"Collection for {self.collection_name}")
-            self.collection = Collection(name=self.collection_name, schema=schema)
-            self.collection.create_index(field_name="embedding", index_params={"metric_type": "L2", "index_type": "HNSW", "params": {"M": 8, "efConstruction": 64}})
 
     def _chunk_documents(self, text: str, source_path: str, doc_metadata: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         langchain_docs = self.text_splitter.create_documents([text])
@@ -55,7 +39,7 @@ class DocumentIndexer:
             }
             if doc_metadata:
                 chunk_metadata.update(doc_metadata)
-            text_content = doc.page_content[:65535]  # Cắt ngắn nếu vượt quá giới hạn
+            text_content = doc.page_content  # Chroma không giới hạn độ dài nghiêm ngặt như Milvus VARCHAR
             chunks_data.append({"text": text_content, "metadata": chunk_metadata})
         return chunks_data
 
@@ -92,25 +76,45 @@ class DocumentIndexer:
             else:
                 return {"success": False, "documents_added": 0, "error": f"Unsupported file type: {file_ext}"}
 
-            # Lập chỉ mục chung
-            vectors = self.model.encode([chunk["text"] for chunk in chunks_data], batch_size=32).tolist()
-            entities = [
-                {
-                    "id": i,
-                    "text": chunk["text"],
-                    "source": os.path.basename(file_path),
-                    "metadata": json.dumps(chunk["metadata"], ensure_ascii=False),
-                    "embedding": vector
-                }
-                for i, (chunk, vector) in enumerate(zip(chunks_data, vectors))
-                if chunk["text"].strip()
-            ]
+            if not chunks_data:
+                 return {"success": False, "documents_added": 0, "error": "No content to index"}
+
+            # Chuẩn bị dữ liệu cho ChromaDB
+            texts = [chunk["text"] for chunk in chunks_data]
+            embeddings = self.model.encode(texts, batch_size=32).tolist()
             
-            if entities:
-                self.collection.insert(entities)
-                self.collection.flush()
-                return {"success": True, "documents_added": len(entities)}
-            return {"success": False, "documents_added": 0, "error": "No content to index"}
+            ids = []
+            metadatas = []
+            
+            for i, chunk in enumerate(chunks_data):
+                # Tạo ID duy nhất
+                chunk_id = str(uuid.uuid4())
+                ids.append(chunk_id)
+                
+                # Metadata trong Chroma nên phẳng (flat), nhưng code cũ dùng json string cho field 'metadata'
+                # Để tương thích với code retriever cũ (parse json từ metadata), ta sẽ lưu:
+                # 1. 'source': filename
+                # 2. 'metadata': json string của toàn bộ metadata gốc
+                orig_metadata = chunk["metadata"]
+                meta_json = json.dumps(orig_metadata, ensure_ascii=False)
+                
+                metadatas.append({
+                    "source": os.path.basename(file_path),
+                    "metadata": meta_json  # Giữ tương thích với retriever cũ
+                })
+
+            # Thêm vào Chroma
+            if ids:
+                self.collection.add(
+                    documents=texts,
+                    embeddings=embeddings,
+                    metadatas=metadatas,
+                    ids=ids
+                )
+                return {"success": True, "documents_added": len(ids)}
+            
+            return {"success": True, "documents_added": 0}
+
         except Exception as e:
             print(f"Error indexing document: {str(e)}")
             return {"success": False, "documents_added": 0, "error": str(e)}
