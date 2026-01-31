@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiFileText, FiBookOpen, FiMap, FiList, FiCpu, FiLayers, FiClock, FiBarChart2, FiAlertTriangle, FiDatabase } from "react-icons/fi";
+import { FiFileText, FiBookOpen, FiMap, FiList, FiCpu, FiLayers, FiClock, FiBarChart2, FiAlertTriangle, FiDatabase, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useAuth } from '../contexts/AuthContext';
 import { handleToolAction } from '../services/api';
 
@@ -203,12 +203,32 @@ const Tools = () => {
     );
   };
 
+  // State for sidebar visibility
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 p-4 md:p-6 h-full">
+    <div className="flex h-full p-4 md:p-6 gap-4 md:gap-6 relative overflow-hidden">
       {/* Sidebar */}
-      <div className="lg:col-span-1 bg-gray-800 rounded-lg p-3 md:p-4 overflow-y-auto custom-scrollbar shadow-md flex flex-col">
-        <h2 className="text-lg md:text-xl font-bold mb-4 text-gray-100 px-1 flex-shrink-0">Công cụ học tập</h2>
-        <div className="space-y-1.5 md:space-y-2 flex-grow overflow-y-auto custom-scrollbar">
+      <div
+        className={`${isSidebarOpen ? "w-64" : "w-16"
+          } bg-gray-800 rounded-lg p-3 md:p-4 transition-all duration-300 ease-in-out shadow-md flex flex-col flex-shrink-0 z-10`}
+      >
+        <div className="flex items-center justify-between mb-4 px-1">
+          {/* Title only visible when open */}
+          <h2 className={`text-lg md:text-xl font-bold text-gray-100 whitespace-nowrap overflow-hidden transition-all duration-300 ${isSidebarOpen ? "opacity-100 max-w-full" : "opacity-0 max-w-0"}`}>
+            Công cụ
+          </h2>
+          {/* Toggle Button */}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-1 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors focus:outline-none"
+            title={isSidebarOpen ? "Thu gọn" : "Mở rộng"}
+          >
+            {isSidebarOpen ? <FiChevronLeft size={20} /> : <FiChevronRight size={20} />}
+          </button>
+        </div>
+
+        <div className="space-y-1.5 md:space-y-2 flex-grow overflow-y-auto custom-scrollbar overflow-x-hidden">
           {tools.map((tool) => (
             <button
               key={tool.id}
@@ -216,24 +236,38 @@ const Tools = () => {
                 console.log(`Clicked sidebar item: ${tool.id}`);
                 setActiveToolId(tool.id);
                 navigate(`/tools/${tool.id}`, { replace: true });
+                // Optional: Auto close sidebar on mobile selection if strictly required, but usually user wants it open to switch tools
               }}
-              className={`w-full flex items-center p-2.5 md:p-3 rounded-md transition-colors duration-150 ease-in-out ${activeToolId === tool.id
+              className={`w-full flex items-center p-2.5 rounded-md transition-colors duration-150 ease-in-out group relative ${activeToolId === tool.id
                 ? "bg-blue-600 text-white shadow-sm"
                 : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:text-white"
-                }`}
+                } ${!isSidebarOpen ? "justify-center" : ""}`}
               aria-current={activeToolId === tool.id ? "page" : undefined}
+              title={!isSidebarOpen ? tool.name : ""}
             >
-              <span className="text-lg md:text-xl mr-3 flex-shrink-0 w-5 text-center">{tool.icon}</span>
-              <div className="text-left overflow-hidden">
+              <span className={`text-xl flex-shrink-0 ${isSidebarOpen ? "mr-3" : ""}`}>{tool.icon}</span>
+
+              {/* Text Label - Hidden when collapsed */}
+              <div
+                className={`text-left overflow-hidden transition-all duration-300 ${isSidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"
+                  }`}
+              >
                 <div className="font-medium text-sm md:text-base truncate">{tool.name}</div>
               </div>
+
+              {/* Tooltip for collapsed mode (optional, browser title works too but this is cooler) */}
+              {!isSidebarOpen && (
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                  {tool.name}
+                </div>
+              )}
             </button>
           ))}
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="lg:col-span-3 bg-gray-800/50 rounded-lg overflow-y-auto custom-scrollbar shadow-inner h-full min-h-0">
+      <div className="flex-1 bg-gray-800/50 rounded-lg overflow-y-auto custom-scrollbar shadow-inner h-full min-h-0 relative">
         {!token ? (
           <div className="flex items-center justify-center h-full text-gray-400 p-6">
             <div className="text-center">

@@ -1,0 +1,61 @@
+--- Starting Manual Tool Test ---
+2026-01-31 23:22:25,415 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2026-01-31 23:22:25,415 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+using local ChromaDB at D:\Project\EduMentor-AI\data\chroma_db
+2026-01-31 23:22:29,727 - chromadb.telemetry.product.posthog - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+D:\Project\EduMentor-AI\core\learning_assistant_v2.py:98: LangChainDeprecationWarning: Please see the migration guide at: https://python.langchain.com/docs/versions/migrating_memory/
+  self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=False, output_key="response")
+2026-01-31 23:22:30,256 - tools.tool_registry - INFO - ToolRegistry initialized.
+2026-01-31 23:22:30,257 - tools.tool_registry - INFO - Registered tool: RAG_Search - Needs Context: True
+2026-01-31 23:22:30,257 - tools.tool_registry - INFO - Registered tool: Web_Search - Needs Context: True
+2026-01-31 23:22:30,257 - tools.tool_registry - INFO - Registered tool: Quiz_Generator - Needs Context: True
+2026-01-31 23:22:35,328 - tools.study_plan_creator - ERROR - Failed to connect to MongoDB at localhost:27017. Stats feature will be unavailable.
+2026-01-31 23:22:35,329 - utils.user_data_manager - INFO - UserDataManager: Connecting to MongoDB using URI
+2026-01-31 23:22:35,973 - utils.user_data_manager - INFO - UserDataManager: Kết nối MongoDB thành công.
+2026-01-31 23:22:35,973 - tools.tool_registry - INFO - Registered tool: Study_Plan_Creator - Needs Context: True
+FlashcardGeneratorTool: Failed to connect to MongoDB. Stats feature will be unavailable.
+2026-01-31 23:22:41,052 - tools.tool_registry - INFO - Registered tool: Flashcard_Generator - Needs Context: True
+2026-01-31 23:22:41,052 - tools.tool_registry - INFO - Registered tool: Concept_Explainer - Needs Context: True
+2026-01-31 23:22:46,135 - tools.progress_tracker - ERROR - ProgressTrackerTool: Failed to connect to MongoDB. Stats feature will be unavailable.
+2026-01-31 23:22:46,136 - tools.tool_registry - INFO - Registered tool: Progress_Tracker - Needs Context: False
+2026-01-31 23:22:46,136 - tools.tool_registry - INFO - Registered tool: Summary_Generator - Needs Context: True
+2026-01-31 23:22:46,136 - tools.tool_registry - INFO - Registered tool: Mind_Map_Creator - Needs Context: True
+Registered tools: RAG_Search, Web_Search, Quiz_Generator, Study_Plan_Creator, Flashcard_Generator, Concept_Explainer, Progress_Tracker, Summary_Generator, Mind_Map_Creator
+2026-01-31 23:22:46,161 - core.learning_assistant_v2 - WARNING - LearningAssistant initialized without a valid MongoDB collection. Chat history saving will be disabled.
+LearningAssistant initialized.
+assistant.llm is present: <class 'core.learning_assistant_v2._LLMWrapper'>
+Tool initialized: Quiz_Generator
+Executing tool with input: {'question': 'Machine Learning basics', 'options': {'num_questions': '2'}}
+2026-01-31 23:22:46,161 - tools.quiz_generator - WARNING - QuizGenerator: Context not provided for 'Machine Learning basics', retrieving...
+Batches:   0%|               | 0/1 [00:00<?, ?it/s]Batches: 100%|███████| 1/1 [00:00<00:00,  5.49it/s]Batches: 100%|███████| 1/1 [00:00<00:00,  5.48it/s]
+Batches:   0%|               | 0/1 [00:00<?, ?it/s]Batches: 100%|███████| 1/1 [00:00<00:00, 68.63it/s]
+Batches:   0%|               | 0/1 [00:00<?, ?it/s]Batches: 100%|███████| 1/1 [00:00<00:00,  4.15it/s]Batches: 100%|███████| 1/1 [00:00<00:00,  4.15it/s]
+2026-01-31 23:22:46,675 - tools.quiz_generator - INFO - QuizGenerator: Calling LLM to generate JSON quiz for 'Machine Learning basics'...
+
+[DEBUG] _LLMWrapper: Invoking Groq with model=llama-3.1-8b-instant, temp=0.05
+2026-01-31 23:22:47,427 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] _LLMWrapper: Received response length: 823
+2026-01-31 23:22:47,447 - tools.quiz_generator - ERROR - QuizGenerator: Failed to parse JSON response from LLM: Expecting value: line 1 column 1 (char 0)
+Response: Dưới đây là kết quả bài kiểm tra trắc nghiệm về chủ đề "Machine Learning basics" dựa trên ngữ cảnh được cung cấp:
+
+{
+  "quiz_id": "quiz_1643723400",
+  "questions": [
+    {
+      "id": 1,
+      "question_text": "Machine learning là một lĩnh vực nào trong trí tuệ nhân tạo?",
+      "options": ["Lập trình", "Học máy", "Khoa học dữ liệu", "Vật lý"],
+      "correct_answer_index": 1
+    },
+    {
+      "id": 2,
+      "question_text": "Curriculum learning là một phương pháp nào trong việc đào tạo mô hình học máy?",
+      "options": ["Đào tạo từ đầu đến cuối", "Đào tạo từ dễ đến khó", "Đào tạo từ khó đến dễ", "Đào tạo ngẫu nhiên"],
+      "correct_answer_index": 1
+    }
+  ]
+}
+
+Lưu ý: Các câu hỏi được thiết kế để bao quát các khía cạnh quan trọng của chủ đề "Machine Learning basics" trong ngữ cảnh được cung cấp.
+--- Tool Execution Result ---
+{'error': 'Lỗi khi xử lý phản hồi từ AI để tạo quiz: Expecting value: line 1 column 1 (char 0)'}

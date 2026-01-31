@@ -104,6 +104,14 @@ class FlashcardGeneratorTool(BaseTool):
             # Clean potential markdown code fences ```json ... ```
             cleaned_response = re.sub(r'^```json\s*|\s*```$', '', response_content, flags=re.MULTILINE).strip()
 
+            # Attempt to find the first { and last } if it's not valid JSON yet
+            if not cleaned_response.startswith('{'):
+                match = re.search(r'\{.*\}', cleaned_response, re.DOTALL)
+                if match:
+                    cleaned_response = match.group(0)
+                else:
+                    print("FlashcardGenerator: Could not find JSON object in response.")
+
             # Parse the JSON response
             try:
                 flashcard_data = json.loads(cleaned_response)

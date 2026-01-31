@@ -32,6 +32,46 @@ class AssistantState(TypedDict):
     needs_context_for_tool: Optional[bool]
     emotion: Optional[Dict[str, Any]] 
 
+class _LLMWrapper:
+    def __init__(self, client, model, temperature):
+        self.client = client
+        self.model = model
+        self.temperature = temperature
+
+    async def ainvoke(self, prompt: str) -> str:
+        # Support both simple string prompt and potential object with .content
+        if hasattr(prompt, 'content'):
+            content = prompt.content
+        else:
+            content = str(prompt)
+        
+        # Use print for guaranteed visibility in console during debugging
+        # print(f"\n[DEBUG] _LLMWrapper: Invoking Groq with model={self.model}, temp={self.temperature}", flush=True)
+        # print(f"[DEBUG] _LLMWrapper: Prompt preview: {content[:200]}...", flush=True) 
+
+        try:
+             response = await asyncio.to_thread(
+                lambda: self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "user", "content": content}
+                    ],
+                    temperature=self.temperature,
+                )
+            )
+             result_content = response.choices[0].message.content
+             if result_content is None:
+                 # print("[DEBUG] _LLMWrapper: Received None content from Groq API!", flush=True)
+                 return ""
+                 
+             stripped_content = result_content.strip()
+             # print(f"[DEBUG] _LLMWrapper: Received response length: {len(stripped_content)}", flush=True)
+             # print(f"[DEBUG] _LLMWrapper: Response preview: {stripped_content[:200]}...", flush=True)
+             return stripped_content
+        except Exception as e:
+            # print(f"[ERROR] _LLMWrapper: Error calling Groq API: {e}", flush=True)
+            raise e
+
 class LearningAssistant:
     # Modify __init__ to accept mongo_collection
     def __init__(self,
@@ -44,6 +84,9 @@ class LearningAssistant:
         self.model_name = model_name
         self.temperature = temperature
         self.groq_client = Groq(api_key=self.api_key)
+        # Initialize llm wrapper for tools expecting it
+        self.llm = _LLMWrapper(self.groq_client, self.model_name, self.temperature)
+
         self.retriever = EnsembleRetriever(
             collection_name=collection_name,
             model_name=config.EMBEDDING_MODEL,

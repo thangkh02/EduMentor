@@ -109,6 +109,14 @@ class QuizGenerator(BaseTool):
             # Clean potential markdown code fences ```json ... ```
             cleaned_response = re.sub(r'^```json\s*|\s*```$', '', response_content, flags=re.MULTILINE).strip()
 
+            # Attempt to find the first { and last } if it's not valid JSON yet
+            if not cleaned_response.startswith('{'):
+                match = re.search(r'\{.*\}', cleaned_response, re.DOTALL)
+                if match:
+                    cleaned_response = match.group(0)
+                else:
+                    logger.warning("QuizGenerator: Could not find JSON object in response.")
+
             logger.debug(f"QuizGenerator: Raw LLM response:\n{response_content}")
             logger.debug(f"QuizGenerator: Cleaned LLM response:\n{cleaned_response}")
 
