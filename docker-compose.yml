@@ -1,80 +1,22 @@
-version: '3.8' 
+version: '3.9'
+
 services:
-  etcd:
-    container_name: milvus-etcd
-    image: quay.io/coreos/etcd:v3.5.5
-    environment:
-      - ETCD_AUTO_COMPACTION_MODE=revision
-      - ETCD_AUTO_COMPACTION_RETENTION=1000
-      - ETCD_QUOTA_BACKEND_BYTES=4294967296
-      - ETCD_SNAPSHOT_COUNT=50000
+  chromadb:
+    image: chromadb/chroma:latest
     volumes:
-      # Sử dụng đường dẫn tương đối đến thư mục volumes trong thư mục hiện tại
-      - ./volumes/etcd:/etcd 
-    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
-    healthcheck:
-      # Thêm healthcheck cho etcd từ ví dụ mới
-      test: ["CMD", "etcdctl", "endpoint", "health"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  minio:
-    container_name: milvus-minio
-    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+      # Data persistance
+      - ./data/chroma_data:/chroma/chroma
     environment:
-      # Đảm bảo các key này được đặt và khớp với standalone service
-      MINIO_ACCESS_KEY: minioadmin 
-      MINIO_SECRET_KEY: minioadmin 
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
     ports:
-      # Thêm port 9001 cho MinIO Console từ ví dụ mới
-      - "9001:9001" 
-      - "9000:9000"
-    volumes:
-      # Sử dụng đường dẫn tương đối
-      - ./volumes/minio:/minio_data 
-    # Sử dụng command mới để chỉ định console address
-    command: minio server /minio_data --console-address ":9001" 
+      - "8000:8000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
       interval: 30s
-      timeout: 20s
+      timeout: 10s
       retries: 3
-
-  standalone:
-    container_name: milvus-standalone
-    # Sử dụng image tag mới nhất từ ví dụ của bạn
-    image: milvusdb/milvus:v2.4.14 
-    command: ["milvus", "run", "standalone"]
-    # Thêm security_opt từ ví dụ mới (có thể cần thiết trong một số môi trường)
-    security_opt:
-      - seccomp:unconfined
-    environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio:9000
-      # !!! QUAN TRỌNG: Đảm bảo các key này khớp với minio service ở trên
-      MINIO_ACCESS_KEY: minioadmin 
-      MINIO_SECRET_KEY: minioadmin 
-    volumes:
-      # Sử dụng đường dẫn tương đối
-      - ./volumes/milvus:/var/lib/milvus 
-    healthcheck:
-      # Sử dụng healthcheck mới, chi tiết hơn cho standalone
-      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
-      interval: 30s
-      start_period: 90s # Cho Milvus thêm thời gian khởi động trước khi check
-      timeout: 20s
-      retries: 3
-    ports:
-      - "19530:19530" # Port chính Milvus gRPC
-      - "9091:9091"   # Port Milvus HTTP
-    depends_on:
-      # Đảm bảo etcd và minio khởi động trước standalone
-      etcd:
-        condition: service_healthy # Chờ etcd healthy
-      minio:
-        condition: service_healthy # Chờ minio healthy
 
 networks:
   default:
-    name: milvus
+    driver: bridge

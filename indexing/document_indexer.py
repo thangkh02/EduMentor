@@ -18,7 +18,12 @@ class DocumentIndexer:
     def __init__(self, collection_name: str = settings.CHROMA_COLLECTION, model_name: str = "all-MiniLM-L6-v2", 
                  chunk_size: int = 500, chunk_overlap: int = 50):
         # Khởi tạo ChromaDB Client
-        self.client = chromadb.PersistentClient(path=str(settings.CHROMA_DB_PATH))
+        if settings.CHROMA_SERVER_HOST and settings.CHROMA_SERVER_PORT:
+            print(f"Connecting to ChromaDB Server at {settings.CHROMA_SERVER_HOST}:{settings.CHROMA_SERVER_PORT}")
+            self.client = chromadb.HttpClient(host=settings.CHROMA_SERVER_HOST, port=int(settings.CHROMA_SERVER_PORT))
+        else:
+            print(f"using local ChromaDB at {settings.CHROMA_DB_PATH}")
+            self.client = chromadb.PersistentClient(path=str(settings.CHROMA_DB_PATH))
         self.collection_name = collection_name
         self.collection = self.client.get_or_create_collection(name=collection_name)
         

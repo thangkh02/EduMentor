@@ -9,6 +9,9 @@ load_dotenv()
 CHROMA_DB_PATH = os.path.join(os.getcwd(), "data", "chroma_db")
 os.makedirs(CHROMA_DB_PATH, exist_ok=True)
 
+CHROMA_SERVER_HOST = os.getenv("CHROMA_SERVER_HOST")
+CHROMA_SERVER_PORT = os.getenv("CHROMA_SERVER_PORT")
+
 DEFAULT_COLLECTION_NAME = "learning_docs"
 CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", DEFAULT_COLLECTION_NAME)
 
@@ -30,6 +33,8 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 # --- LLM Configuration ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 LLM_MODEL_NAME = os.getenv("LLM_MODEL_NAME")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+LLM_GROQ_MODEL = os.getenv("LLM_GROQ_MODEL", "llama-3.3-70b-versatile")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", 0.05))
 
 # --- Web Search Configuration ---

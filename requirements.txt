@@ -5,7 +5,7 @@ pymongo
 langchain>=0.2.0
 langchain-core>=0.2.0
 langchain-community>=0.2.0
-langchain-google-genai
+groq
 langgraph
 sentence-transformers
 chromadb

@@ -4,33 +4,19 @@ import re
 import asyncio
 import logging
 from typing import List, Dict, Any, Optional, TypedDict
+from datetime import datetime, timezone
 from langchain.memory import ConversationBufferMemory
-from langchain_google_genai import GoogleGenerativeAI
-from langchain.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
+from groq import Groq
 from langgraph.graph import StateGraph, END
-import os
-import json
-from langchain.prompts import PromptTemplate
-import re
-import asyncio
-import logging
-from typing import List, Dict, Any, Optional, TypedDict
-from langchain.memory import ConversationBufferMemory # Keep for now, might remove later if fully switching to DB history
-from langchain_google_genai import GoogleGenerativeAI
-from langchain.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from langgraph.graph import StateGraph, END
-from pymongo.collection import Collection # Import Collection type hint
-from datetime import datetime, timezone # Add datetime import
+from pymongo.collection import Collection
 from config import settings as config
 from retrievers.ensemble_retriever import EnsembleRetriever
 from tools.tool_registry import ToolRegistry
 from tools import register_all_tools
-# No longer importing MongoClient or ConnectionFailure here
 
 logging.basicConfig(level=config.LOGGING_LEVEL, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 
 class AssistantState(TypedDict):
     question: str
@@ -49,11 +35,13 @@ class LearningAssistant:
     def __init__(self,
                  mongo_collection: Optional[Collection], # Accept MongoDB collection object
                  collection_name: str = config.CHROMA_COLLECTION,
-                 model_name: str = config.LLM_MODEL_NAME,
-                 api_key: Optional[str] = config.GOOGLE_API_KEY,
+                 model_name: str = config.LLM_GROQ_MODEL or 'llama-3.3-70b-versatile',
+                 api_key: Optional[str] = config.GROQ_API_KEY,
                  temperature: float = config.LLM_TEMPERATURE):
         self.api_key = api_key
-        self.llm = GoogleGenerativeAI(model=model_name, google_api_key=self.api_key, temperature=temperature)
+        self.model_name = model_name
+        self.temperature = temperature
+        self.groq_client = Groq(api_key=self.api_key)
         self.retriever = EnsembleRetriever(
             collection_name=collection_name,
             model_name=config.EMBEDDING_MODEL,
@@ -123,14 +111,12 @@ class LearningAssistant:
 
     async def _analyze_intent_node(self, state: AssistantState) -> Dict[str, Any]:
         question = state["question"]
-        # Use the chat_history passed in the state, which will be loaded from DB if available
         chat_history = state.get("chat_history", "")
         available_tools = list(self.tool_registry.get_tool_names())
         tools_description = "\n".join([f"- {name}: {self.tool_registry.get_tool_description(name)}"
                                       for name in available_tools if self.tool_registry.get_tool_description(name)]) or "Không có công cụ nào được mô tả."
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", f"""Bạn là một agent định tuyến thông minh. Nhiệm vụ của bạn là phân tích câu hỏi của người dùng và chọn hành động phù hợp nhất.
+        system_prompt = f"""Bạn là một agent định tuyến thông minh. Nhiệm vụ của bạn là phân tích câu hỏi của người dùng và chọn hành động phù hợp nhất.
 
                 Các công cụ/hành động có sẵn:
                 {tools_description}
@@ -150,16 +136,42 @@ class LearningAssistant:
                 Output có dạng: 
                     "action": "[Tên công cụ hoặc RAG hoặc DIRECT]", "confidence": [0.0-1.0], "reasoning": "[Lý do]"
                 Lưu ý : trả về Json
-                """),
-            ("human", "Lịch sử hội thoại:\n{chat_history}\n\nCâu hỏi người dùng:\n{question}")
-        ])
+                """
 
-        parser = JsonOutputParser()
-        chain = prompt | self.llm | parser
-        input_dict = {"question": question, "chat_history": chat_history}
+        user_prompt = f"Lịch sử hội thoại:\n{chat_history}\n\nCâu hỏi người dùng:\n{question}"
 
         try:
-            result_json = await asyncio.wait_for(chain.ainvoke(input_dict), timeout=20.0)
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    lambda: self.groq_client.chat.completions.create(
+                        model=self.model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        temperature=self.temperature,
+                        max_tokens=1024
+                    )
+                ),
+                timeout=20.0
+            )
+            
+            response_text = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if response_text.startswith("```"):
+                response_text = response_text.split("```")[1]
+                if response_text.startswith("json"):
+                    response_text = response_text[4:]
+            response_text = response_text.strip()
+            
+            # Parse JSON response
+            try:
+                result_json = json.loads(response_text)
+            except json.JSONDecodeError:
+                logger.warning(f"Could not parse JSON from response: {response_text}")
+                result_json = {"action": "RAG", "confidence": 0.5, "reasoning": "Parse error"}
+            
             action = result_json.get("action")
             if action == "RAG":
                 route_decision = "RAG"
@@ -190,6 +202,7 @@ class LearningAssistant:
             "needs_context_for_tool": needs_context
         }
 
+
     async def _retrieve_context_node(self, state: AssistantState) -> Dict[str, Any]:
         question = state["question"]
         try:
@@ -207,8 +220,7 @@ class LearningAssistant:
     # Add this method to the LearningAssistant class after _analyze_intent_node
     async def _analyze_emotion(self, text: str) -> Dict[str, Any]:
         """Analyzes the emotional content of user input."""
-        prompt = PromptTemplate.from_template(
-            """Analyze the emotional state reflected in this text:
+        prompt = f"""Analyze the emotional state reflected in this text:
 
             "{text}"
 
@@ -221,13 +233,44 @@ class LearningAssistant:
             Return only a JSON with these keys:
             {{"emotion": "primary_emotion", "intensity": intensity_number, "triggers": "key_triggers", "suggested_tone": "recommended_tone"}}
             """
-        )
-        
-        chain = prompt | self.llm | JsonOutputParser()
         
         try:
-            result = await asyncio.wait_for(chain.ainvoke({"text": text}), timeout=10.0)
-            return result
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    lambda: self.groq_client.chat.completions.create(
+                        model=self.model_name,
+                        messages=[
+                            {"role": "system", "content": "You are an emotional analysis assistant. Return only valid JSON."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=self.temperature,
+                        max_tokens=512
+                    )
+                ),
+                timeout=10.0
+            )
+            
+            response_text = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if response_text.startswith("```"):
+                response_text = response_text.split("```")[1]
+                if response_text.startswith("json"):
+                    response_text = response_text[4:]
+            response_text = response_text.strip()
+            
+            # Parse JSON response
+            try:
+                result = json.loads(response_text)
+                return result
+            except json.JSONDecodeError:
+                logger.warning(f"Could not parse emotion JSON: {response_text}")
+                return {
+                    "emotion": "neutral",
+                    "intensity": 5,
+                    "triggers": "unknown",
+                    "suggested_tone": "balanced"
+                }
         except Exception as e:
             logger.warning(f"Emotion analysis failed: {e}")
             return {
@@ -236,6 +279,7 @@ class LearningAssistant:
                 "triggers": "unknown",
                 "suggested_tone": "balanced"
             }
+
     async def _execute_tool_node(self, state: AssistantState) -> Dict[str, Any]:
         tool_name = state.get("selected_tool_name")
         if not tool_name:
@@ -250,7 +294,6 @@ class LearningAssistant:
     async def _generate_response_node(self, state: AssistantState) -> Dict[str, Any]:
         question = state["question"]
         context = state.get("context")
-        # Use the chat_history passed in the state
         chat_history = state.get("chat_history", "")
         tool_outputs = state.get("tool_outputs")
         route_decision = state.get("route_decision", "DIRECT")
@@ -266,44 +309,51 @@ class LearningAssistant:
         Phân tích cảm xúc người dùng: Họ đang thể hiện cảm xúc "{emotion}" với mức độ {emotion_intensity}/10.
         Hãy điều chỉnh tông giọng của bạn để "{suggested_tone}" khi phản hồi.Nếu người dùng buồn chán hay chán nản với việc học,hãy tiếp thêm động lực cho người dùng.Khi người dùng vui vẻ,hãy chia vui với người dùng"""
         
-        human_template_parts = ["Câu hỏi người dùng: {question}\n"]
-        input_dict = {"question": question, "chat_history": chat_history}
+        human_parts = [f"Câu hỏi người dùng: {question}\n"]
 
         if route_decision == "RAG":
             system_message += "\nHãy trả lời dựa vào ngữ cảnh tài liệu dưới đây."
-            human_template_parts.append("--- Ngữ cảnh ---")
-            human_template_parts.append("{context}")
-            human_template_parts.append("--- Kết thúc ngữ cảnh ---")
-            input_dict["context"] = context or "Không có ngữ cảnh."
+            human_parts.append("--- Ngữ cảnh ---")
+            human_parts.append(context or "Không có ngữ cảnh.")
+            human_parts.append("--- Kết thúc ngữ cảnh ---")
         elif route_decision == "TOOL" and tool_outputs and selected_tool_name:
             tool_result = tool_outputs.get(selected_tool_name, "Công cụ bị lỗi.")
             system_message += f"\nSử dụng kết quả từ công cụ '{selected_tool_name}'."
-            human_template_parts.append(f"--- Kết quả từ '{selected_tool_name}' ---")
-            human_template_parts.append("{tool_result}")
-            human_template_parts.append("--- Kết thúc kết quả ---")
-            input_dict["tool_result"] = tool_result
+            human_parts.append(f"--- Kết quả từ '{selected_tool_name}' ---")
+            human_parts.append(str(tool_result))
+            human_parts.append("--- Kết thúc kết quả ---")
             if context:
-                human_template_parts.append("\n--- Ngữ cảnh bổ sung ---")
-                human_template_parts.append("{context}")
-                human_template_parts.append("--- Kết thúc ngữ cảnh ---")
-                input_dict["context"] = context
+                human_parts.append("\n--- Ngữ cảnh bổ sung ---")
+                human_parts.append(context)
+                human_parts.append("--- Kết thúc ngữ cảnh ---")
         else:
             system_message += "\nTrả lời trực tiếp và tự nhiên."
 
         if chat_history:
-            human_template_parts.append("\n--- Lịch sử hội thoại ---")
-            human_template_parts.append("{chat_history}")
-            human_template_parts.append("--- Kết thúc lịch sử ---")
+            human_parts.append("\n--- Lịch sử hội thoại ---")
+            human_parts.append(chat_history)
+            human_parts.append("--- Kết thúc lịch sử ---")
 
-        human_template = "\n\n".join(human_template_parts) + "\n\nCâu trả lời của EduMentor:"
-        prompt = ChatPromptTemplate.from_messages([("system", system_message), ("human", human_template)])
-        chain = prompt | self.llm | StrOutputParser()
+        human_message = "\n\n".join(human_parts) + "\n\nCâu trả lời của EduMentor:"
 
         try:
-            response = await chain.ainvoke(input_dict)
-            # We will save history to DB in the main answer method, not here.
-            # self.memory.save_context({"question": question}, {"response": response}) # Keep Langchain memory update for now
-            return {"response": response}
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    lambda: self.groq_client.chat.completions.create(
+                        model=self.model_name,
+                        messages=[
+                            {"role": "system", "content": system_message},
+                            {"role": "user", "content": human_message}
+                        ],
+                        temperature=self.temperature,
+                        max_tokens=2048
+                    )
+                ),
+                timeout=30.0
+            )
+            
+            response_text = response.choices[0].message.content.strip()
+            return {"response": response_text}
         except Exception as e:
             logger.exception(f"Error generating response: {e}")
             return {"response": f"Lỗi khi tạo phản hồi: {str(e)}"}

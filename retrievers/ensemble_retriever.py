@@ -33,7 +33,13 @@ class EnsembleRetriever:
     def _setup(self):
         """Setup ChromaDB client and load BM25."""
         try:
-            self.client = chromadb.PersistentClient(path=str(settings.CHROMA_DB_PATH))
+            if settings.CHROMA_SERVER_HOST and settings.CHROMA_SERVER_PORT:
+                print(f"Connecting to ChromaDB Server at {settings.CHROMA_SERVER_HOST}:{settings.CHROMA_SERVER_PORT}")
+                self.client = chromadb.HttpClient(host=settings.CHROMA_SERVER_HOST, port=int(settings.CHROMA_SERVER_PORT))
+            else:
+                 print(f"using local ChromaDB at {settings.CHROMA_DB_PATH}")
+                 self.client = chromadb.PersistentClient(path=str(settings.CHROMA_DB_PATH))
+                 
             self.collection = self.client.get_or_create_collection(name=self.collection_name)
             self._initialize_bm25()
         except Exception as e:
