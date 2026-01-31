@@ -40,12 +40,40 @@ class SubjectProgress(BaseModel):
     progress_updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     description: Optional[str] = Field(None)
 
+class MessageInfo(BaseModel):
+    role: str = Field(..., description="'user' hoặc 'assistant'")
+    content: str
+    timestamp: datetime
+    metadata: Dict[str, Any] = {}
+
+class ConversationInfo(BaseModel):
+    id: str = Field(..., alias="_id", description="MongoDB ObjectId")
+    username: str
+    session_id: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    is_active: bool
+    message_count: int
+    messages: List[MessageInfo] = []
+
+class ConversationResponse(BaseModel):
+    conversations: List[ConversationInfo]
+    total: int
+    limit: int
+
+class ChatHistoryResponse(BaseModel):
+    username: str
+    conversations: List[ConversationInfo]
+    total_messages: int = 0
+
 class StatsResponse(BaseModel):
     username: str
     subjects: Dict[str, SubjectProgress] = {}
     documents: List[DocumentInfo] = []
     flashcards: Dict[str, Any] = {}
-    chat_history_count: int = 0
+    total_conversations: int = 0
+    total_messages: int = 0
     completed_quizzes: int = 0
     last_activity: Optional[datetime] = None
     recommendations: List[str] = []
@@ -58,6 +86,10 @@ class StatsUpdate(BaseModel):
     action: Optional[str] = None
     action_data: Optional[Dict[str, Any]] = None
     completed_quiz: Optional[Dict[str, Any]] = None
+    flashcards: Optional[Dict[str, Dict[str, Any]]] = None
+
+class ApiResponse(BaseModel):
+    response: Dict[str, Any]
     flashcards: Optional[Dict[str, Dict[str, Any]]] = None
 
 class ApiResponse(BaseModel):

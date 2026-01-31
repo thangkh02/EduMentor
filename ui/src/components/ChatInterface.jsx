@@ -9,7 +9,7 @@ import { useOutletContext } from 'react-router-dom';
 // Memoized Message component to prevent unnecessary re-renders
 const ChatMessage = memo(({ message, onTypingComplete }) => {
   const { role, content, isTyping, isLoading, isError } = message;
-  
+
   return (
     <div
       className={`flex py-4 px-4 md:px-6 ${role === 'user' ? 'bg-gray-800' : 'bg-gray-850'} animate-fadeIn`}
@@ -63,7 +63,7 @@ const ChatMessage = memo(({ message, onTypingComplete }) => {
 });
 
 function ChatInterface({ commonQuestions }) {
-  const { currentUser, token } = useAuth();
+  const { user: currentUser, token } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -75,38 +75,27 @@ function ChatInterface({ commonQuestions }) {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isTypingInProgress, setIsTypingInProgress] = useState(false);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
-  
+
   // Nhận context từ App.jsx thông qua useOutletContext
-  const { selectedConversation, quickQuestion, resetQuickQuestion } = useOutletContext() || {};
-  
+  const { selectedConversation, quickQuestion, resetQuickQuestion, refreshSidebar } = useOutletContext() || {};
+
   // --- Xử lý khi người dùng chọn một cuộc trò chuyện từ sidebar ---
   useEffect(() => {
-    if (selectedConversation && selectedConversation.messages) {
+    if (selectedConversation && selectedConversation.raw) {
       try {
-        // Chuyển đổi format của conversation thành messages
-        const formattedMessages = [];
-        
-        // Với mỗi tin nhắn trong cuộc trò chuyện
-        selectedConversation.messages.forEach(entry => {
-          // Thêm tin nhắn người dùng trước
-          if (entry.user && entry.user.trim()) {
-            formattedMessages.push({ 
-              role: 'user', 
-              content: entry.user,
-              timestamp: entry.timestamp
-            });
-          }
-          
-          // Sau đó thêm tin nhắn của assistant
-          if (entry.assistant && entry.assistant.trim()) {
-            formattedMessages.push({ 
-              role: 'assistant',
-              content: entry.assistant,
-              timestamp: entry.timestamp
-            });
-          }
-        });
-        
+        console.log('Loading selected conversation:', selectedConversation);
+
+        // Backend API trả về messages theo format: [{role, content, timestamp}, ...]
+        // selectedConversation.raw chứa dữ liệu gốc từ API
+        const rawMessages = selectedConversation.raw.messages || [];
+
+        // Chuyển đổi thành format cho UI
+        const formattedMessages = rawMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp
+        }));
+
         // Cập nhật state messages
         setMessages(formattedMessages);
         setInitialLoadComplete(true);
@@ -130,12 +119,12 @@ function ChatInterface({ commonQuestions }) {
         try {
           setIsLoading(true);
           setError(null);
-          
+
           // Lấy danh sách chat history từ API
           const response = await getChatHistory(currentUser.username, token);
-          
+
           console.log("Chat history API response:", response);
-          
+
           // Kiểm tra xem response có đúng định dạng không
           if (!response || !response.history || !Array.isArray(response.history) || response.history.length === 0) {
             console.log("No chat history found or empty history array");
@@ -144,32 +133,32 @@ function ChatInterface({ commonQuestions }) {
             setInitialLoadComplete(true);
             return;
           }
-          
+
           // Lấy tin nhắn mới nhất từ lịch sử
           const chatHistory = response.history;
           const latestEntry = chatHistory[chatHistory.length - 1]; // Lấy tin nhắn gần nhất
-          
+
           console.log("Latest chat entry:", latestEntry);
-          
+
           // Tạo tin nhắn mới từ entry gần nhất
           const formattedMessages = [];
-          
+
           if (latestEntry.user) {
-            formattedMessages.push({ 
-              role: 'user', 
-              content: latestEntry.user, 
-              timestamp: latestEntry.timestamp 
+            formattedMessages.push({
+              role: 'user',
+              content: latestEntry.user,
+              timestamp: latestEntry.timestamp
             });
           }
-          
+
           if (latestEntry.assistant) {
-            formattedMessages.push({ 
-              role: 'assistant', 
-              content: latestEntry.assistant, 
-              timestamp: latestEntry.timestamp 
+            formattedMessages.push({
+              role: 'assistant',
+              content: latestEntry.assistant,
+              timestamp: latestEntry.timestamp
             });
           }
-          
+
           setMessages(formattedMessages);
           console.log("Set formatted messages:", formattedMessages);
         } catch (err) {
@@ -182,7 +171,7 @@ function ChatInterface({ commonQuestions }) {
         setInitialLoadComplete(true);
       }
     };
-    
+
     loadHistory();
   }, [currentUser, token, initialLoadComplete, selectedConversation]);
 
@@ -203,7 +192,7 @@ function ChatInterface({ commonQuestions }) {
       // Show button if user has scrolled up at least 100px from bottom
       const isNearBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 100;
       setShowScrollButton(!isNearBottom && messages.length > 0);
-      
+
       // If user manually scrolled to bottom, clear the unread messages indicator
       if (isNearBottom) {
         setHasUnreadMessages(false);
@@ -217,12 +206,12 @@ function ChatInterface({ commonQuestions }) {
   // --- Improved Scroll Logic ---
   const scrollToBottom = useCallback((behavior = "auto") => {
     if (!messagesEndRef.current) return;
-    
+
     // Use requestAnimationFrame to ensure DOM is ready
     requestAnimationFrame(() => {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior, 
-        block: "end" 
+      messagesEndRef.current.scrollIntoView({
+        behavior,
+        block: "end"
       });
     });
   }, []);
@@ -237,12 +226,12 @@ function ChatInterface({ commonQuestions }) {
   useEffect(() => {
     const hasTypingMessage = messages.some(msg => msg.isTyping);
     setIsTypingInProgress(hasTypingMessage);
-    
+
     // Check if we're at the bottom before scrolling
     if (chatContainerRef.current) {
       const container = chatContainerRef.current;
       const isNearBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 100;
-      
+
       if (isNearBottom || messages.some(msg => msg.isLoading)) {
         scrollToBottom();
       } else if (messages.length > 0) {
@@ -281,13 +270,13 @@ function ChatInterface({ commonQuestions }) {
       .replace(/\*\*/g, '')
       .replace(/\*/g, '')
       .trim();
-      
-    formattedContent = formattedContent.replace(/(\d+\.)\s+([^\n]+)(?=\s*(?:\d+\.|$))/g, function(match, number, content) {
+
+    formattedContent = formattedContent.replace(/(\d+\.)\s+([^\n]+)(?=\s*(?:\d+\.|$))/g, function (match, number, content) {
       return number + ' ' + content.trim() + '\n';
     });
-    
+
     formattedContent = formattedContent.replace(/\n\s*\n/g, '\n');
-    
+
     return formattedContent;
   };
 
@@ -304,7 +293,7 @@ function ChatInterface({ commonQuestions }) {
     setHasUnreadMessages(false);
 
     if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = 'auto';
     }
 
     try {
@@ -319,13 +308,18 @@ function ChatInterface({ commonQuestions }) {
         (msg.isLoading) ? { role: 'assistant', content: aiContent, isTyping: true } : msg
       ));
       setIsTypingInProgress(true);
+
+      // Refresh sidebar to show newly created conversation
+      if (refreshSidebar) {
+        refreshSidebar();
+      }
     } catch (err) {
       console.error("Lỗi khi gửi tin nhắn:", err);
       const errorDetail = err.response?.data?.detail || err.message;
       const errorMessage = errorDetail || 'Đã có lỗi xảy ra khi kết nối tới máy chủ. Vui lòng thử lại.';
       setError(errorMessage);
-      
-      setMessages(prev => prev.map(msg => 
+
+      setMessages(prev => prev.map(msg =>
         (msg.isLoading) ? { role: 'assistant', content: `Lỗi: ${errorMessage}`, isError: true } : msg
       ));
     } finally {
@@ -347,7 +341,7 @@ function ChatInterface({ commonQuestions }) {
   return (
     <div className="flex flex-col h-full bg-gray-900 relative">
       {/* Messages container - each message takes the full width */}
-      <div 
+      <div
         ref={chatContainerRef}
         className="flex-grow overflow-y-auto custom-scrollbar scroll-smooth"
       >
@@ -361,9 +355,9 @@ function ChatInterface({ commonQuestions }) {
           </div>
         ) : (
           messages.map((msg, index) => (
-            <ChatMessage 
-              key={index} 
-              message={msg} 
+            <ChatMessage
+              key={index}
+              message={msg}
               onTypingComplete={msg.isTyping ? handleTypingComplete : undefined}
             />
           ))
@@ -374,9 +368,8 @@ function ChatInterface({ commonQuestions }) {
       {/* Scroll to bottom button */}
       {showScrollButton && (
         <button
-          className={`absolute bottom-20 right-6 z-10 p-2 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 transition-all focus:outline-none ${
-            hasUnreadMessages ? 'animate-bounce' : ''
-          }`}
+          className={`absolute bottom-20 right-6 z-10 p-2 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 transition-all focus:outline-none ${hasUnreadMessages ? 'animate-bounce' : ''
+            }`}
           onClick={() => {
             scrollToBottom("smooth");
             setHasUnreadMessages(false);
@@ -424,11 +417,10 @@ function ChatInterface({ commonQuestions }) {
             <button
               onClick={handleSend}
               disabled={isLoading || !input.trim()}
-              className={`ml-2 p-2.5 rounded-lg text-white flex-shrink-0 ${
-                isLoading || !input.trim()
-                  ? 'bg-gray-600 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              } transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-700`}
+              className={`ml-2 p-2.5 rounded-lg text-white flex-shrink-0 ${isLoading || !input.trim()
+                ? 'bg-gray-600 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+                } transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-700`}
               aria-label="Gửi tin nhắn"
             >
               {isLoading ? (

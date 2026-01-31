@@ -3,12 +3,14 @@ import json
 import re
 import asyncio
 import logging
+import uuid
 from typing import List, Dict, Any, Optional, TypedDict
 from datetime import datetime, timezone
 from langchain.memory import ConversationBufferMemory
 from groq import Groq
 from langgraph.graph import StateGraph, END
 from pymongo.collection import Collection
+from bson import ObjectId
 from config import settings as config
 from retrievers.ensemble_retriever import EnsembleRetriever
 from tools.tool_registry import ToolRegistry
@@ -408,50 +410,146 @@ class LearningAssistant:
         # Ensure the return statement is correctly indented within the method
         return {"response": response}
 
-    async def _save_chat_history(self, username: str, question: str, response: str):
-        """Saves a question-response pair to MongoDB for the user."""
+    async def _save_chat_history(self, username: str, question: str, response: str, 
+                                 route_decision: Optional[str] = None, 
+                                 selected_tool: Optional[str] = None,
+                                 sources: Optional[List[Dict]] = None):
+        """Saves a question-response pair to a conversations collection in MongoDB."""
         if self.mongo_collection is None or not username:
             logger.warning(f"Cannot save chat history for {username}. MongoDB connection unavailable or username missing.")
             return
 
         try:
+            # Access conversations collection
+            db = self.mongo_collection.database
+            conversations_collection = db["conversations"]
+            
             now_utc = datetime.now(timezone.utc)
-            chat_entry = {
-                "user": question,
-                "assistant": response,
-                "timestamp": now_utc
+            
+            # Try to find an active conversation for this user
+            active_conversation = conversations_collection.find_one(
+                {"username": username, "is_active": True},
+                sort=[("updated_at", -1)]
+            )
+            
+            is_new_conversation = False
+            
+            if not active_conversation:
+                # Create a new conversation if no active one exists
+                is_new_conversation = True
+                session_id = f"sess_{uuid.uuid4().hex[:12]}"
+                
+                # Auto-generate title from first message
+                title = question.strip()[:60]
+                if len(question) > 60:
+                    title += "..."
+                
+                conversation_doc = {
+                    "_id": ObjectId(),
+                    "username": username,
+                    "session_id": session_id,
+                    "title": title,
+                    "created_at": now_utc,
+                    "updated_at": now_utc,
+                    "is_active": True,
+                    "is_archived": False,
+                    "message_count": 0,
+                    "topic_tags": [],
+                    "messages": []
+                }
+                result = conversations_collection.insert_one(conversation_doc)
+                active_conversation = conversation_doc
+                active_conversation["_id"] = result.inserted_id
+                logger.info(f"Created new conversation {result.inserted_id} for user: {username}")
+            
+            # Add user message
+            user_message = {
+                "_id": ObjectId(),
+                "role": "user",
+                "content": question,
+                "timestamp": now_utc,
+                "metadata": {}
             }
-            # Use $push to add to the chat_history array and $inc to count
+            
+            # Add assistant message
+            assistant_message = {
+                "_id": ObjectId(),
+                "role": "assistant",
+                "content": response,
+                "timestamp": now_utc,
+                "metadata": {
+                    "route_decision": route_decision,
+                    "selected_tool": selected_tool,
+                    "sources_count": len(sources) if sources else 0
+                }
+            }
+            
+            # Update conversation with new messages
+            conversations_collection.update_one(
+                {"_id": active_conversation["_id"]},
+                {
+                    "$push": {"messages": {"$each": [user_message, assistant_message]}},
+                    "$inc": {"message_count": 2},
+                    "$set": {"updated_at": now_utc}
+                }
+            )
+            
+            # Build update data for user
+            update_data = {
+                "$inc": {"total_messages": 2},
+                "$set": {"last_activity": now_utc}
+            }
+            
+            # If this is a new conversation, also increment total_conversations
+            if is_new_conversation:
+                update_data["$inc"]["total_conversations"] = 1
+                logger.info(f"Incremented total_conversations for user: {username}")
+            
+            # Also update user's total message count and last activity
             self.mongo_collection.update_one(
                 {"_id": username},
-                {
-                    "$push": {"chat_history": chat_entry},
-                    "$inc": {"chat_history_count": 1}, # Increment count
-                    "$set": {"last_activity": now_utc}, # Update last activity
-                    "$setOnInsert": {"_id": username, "username": username} # Ensure user doc exists
-                },
+                update_data,
                 upsert=True
             )
-            logger.info(f"Saved chat history for user: {username}")
+            
+            logger.info(f"Saved 2 messages to conversation {active_conversation['_id']} for user: {username}")
+            
         except Exception as e:
             logger.error(f"Failed to save chat history for user {username}: {e}")
 
     async def _load_chat_history(self, username: str, limit: int = 10) -> str:
-        """Loads recent chat history from MongoDB for the user."""
+        """Loads recent chat history from MongoDB conversations collection for the user."""
         if self.mongo_collection is None or not username:
             return ""
 
         try:
-            user_data = self.mongo_collection.find_one(
-                {"_id": username},
-                {"chat_history": {"$slice": -limit}} # Get last 'limit' entries
+            db = self.mongo_collection.database
+            conversations_collection = db["conversations"]
+            
+            # Find the most recent active conversation
+            conversation = conversations_collection.find_one(
+                {"username": username, "is_active": True},
+                sort=[("updated_at", -1)]
             )
-            if user_data and "chat_history" in user_data:
+            
+            if not conversation:
+                # Try to find any recent conversation (even if archived)
+                conversation = conversations_collection.find_one(
+                    {"username": username},
+                    sort=[("updated_at", -1)]
+                )
+            
+            if conversation and "messages" in conversation:
+                messages = conversation["messages"]
+                # Get last 'limit' messages
+                recent_messages = messages[-limit*2:]  # *2 because each turn has 2 messages (user + assistant)
+                
                 history_str = "\n".join([
-                    f"User: {entry['user']}\nAssistant: {entry['assistant']}"
-                    for entry in user_data["chat_history"]
+                    f"{msg['role'].capitalize()}: {msg['content']}"
+                    for msg in recent_messages
                 ])
                 return history_str
+            
             return ""
         except Exception as e:
             logger.error(f"Failed to load chat history for user {username}: {e}")
@@ -484,7 +582,14 @@ class LearningAssistant:
             # Save chat history to MongoDB if username is provided and response exists
             final_response = final_state.get("response")
             if username and final_response:
-                await self._save_chat_history(username, question, final_response)
+                await self._save_chat_history(
+                    username, 
+                    question, 
+                    final_response,
+                    route_decision=final_state.get("route_decision"),
+                    selected_tool=final_state.get("selected_tool_name"),
+                    sources=final_state.get("sources")
+                )
 
             return {
                 "response": final_response or "Lỗi không xác định",

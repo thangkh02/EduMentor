@@ -21,7 +21,7 @@ const HomePage = () => {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center p-8">
       <div className="mb-8">
-        <img src={edubotLogo} alt="AI Assistant" className="w-40 h-40 mx-auto mb-4 animate-pulse" style={{animationDuration: '3s'}} />
+        <img src={edubotLogo} alt="AI Assistant" className="w-40 h-40 mx-auto mb-4 animate-pulse" style={{ animationDuration: '3s' }} />
         <TypeAnimation
           sequence={[
             'Chào mừng đến với EduMentor AI', 1000,
@@ -34,12 +34,12 @@ const HomePage = () => {
           repeat={Infinity}
         />
       </div>
-      <p className="text-xl text-gray-300 max-w-2xl mb-8 animate-fadeIn" style={{animationDelay: '0.5s'}}>
-      Hãy để EduMentor AI đồng hành cùng bạn
-      trên hành trình chinh phục tri thức suốt đời. Let's go!!
+      <p className="text-xl text-gray-300 max-w-2xl mb-8 animate-fadeIn" style={{ animationDelay: '0.5s' }}>
+        Hãy để EduMentor AI đồng hành cùng bạn
+        trên hành trình chinh phục tri thức suốt đời. Let's go!!
       </p>
       {/* Conditionally render cards based on auth status or keep them always visible */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl animate-fadeIn" style={{animationDelay: '0.8s'}}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl animate-fadeIn" style={{ animationDelay: '0.8s' }}>
         <FeatureCard
           title="Smart Chat"
           description="Ask questions about your learning materials and get intelligent answers"
@@ -52,23 +52,23 @@ const HomePage = () => {
           icon="tools"
           linkTo="/tools"
         />
-         {/* Only show upload if authenticated */}
-         {isAuthenticated && (
-            <FeatureCard
-              title="Upload Documents"
-              description="Add your learning materials to enhance your experience"
-              icon="upload"
-              onClick={() => setShowUploader(true)}
-            />
-         )}
-         {!isAuthenticated && (
-             <FeatureCard
-              title="Login / Register"
-              description="Access all features by logging in or creating an account"
-              icon="auth" // Add an appropriate icon if needed
-              linkTo="/login"
-            />
-         )}
+        {/* Only show upload if authenticated */}
+        {isAuthenticated && (
+          <FeatureCard
+            title="Upload Documents"
+            description="Add your learning materials to enhance your experience"
+            icon="upload"
+            onClick={() => setShowUploader(true)}
+          />
+        )}
+        {!isAuthenticated && (
+          <FeatureCard
+            title="Login / Register"
+            description="Access all features by logging in or creating an account"
+            icon="auth" // Add an appropriate icon if needed
+            linkTo="/login"
+          />
+        )}
       </div>
 
       {/* Upload Modal - Only shown if button is clicked (which requires auth) */}
@@ -102,6 +102,8 @@ const MainLayout = () => {
   // Thêm state để quản lý trò chuyện được chọn
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [quickQuestion, setQuickQuestion] = useState("");
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Hàm xử lý khi người dùng chọn một cuộc trò chuyện từ sidebar
   const handleSelectConversation = useCallback((conversation) => {
@@ -113,22 +115,57 @@ const MainLayout = () => {
     setQuickQuestion(question);
   }, []);
 
+  // Hàm để refresh sidebar sau khi gửi tin nhắn
+  const handleRefreshSidebar = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       <NavBar />
       <div className="flex flex-1 overflow-hidden">
-        <div className="hidden md:block w-64 flex-shrink-0 bg-gray-900">
-          <Sidebar 
-            handleQuickQuestion={handleQuickQuestion} 
-            onSelectConversation={handleSelectConversation} 
-          />
+        {/* Sidebar with integrated toggle button */}
+        <div className={`hidden md:flex bg-gray-900 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
+          {isSidebarOpen && (
+            <div className="w-64 flex-shrink-0 relative">
+              <Sidebar
+                handleQuickQuestion={handleQuickQuestion}
+                onSelectConversation={handleSelectConversation}
+                refreshTrigger={refreshTrigger}
+              />
+              {/* Toggle button integrated into sidebar edge */}
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="absolute top-4 -right-3 p-1.5 bg-gray-800 hover:bg-blue-600 text-gray-400 hover:text-white rounded-full shadow-lg transition-all duration-200 border border-gray-700 hover:border-blue-500 group"
+                title="Ẩn sidebar"
+              >
+                <svg className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Show button when sidebar is closed */}
+        {!isSidebarOpen && (
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="hidden md:flex items-center justify-center w-10 h-10 bg-gray-800 hover:bg-blue-600 text-gray-400 hover:text-white rounded-r-lg shadow-lg transition-all duration-200 border-r border-t border-b border-gray-700 hover:border-blue-500 group fixed left-0 top-20 z-40"
+            title="Hiện sidebar"
+          >
+            <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
         <div className="flex-1 flex flex-col overflow-hidden">
           <main className="flex-1 overflow-y-auto"> {/* Allow content to scroll */}
-            <Outlet context={{ 
-              selectedConversation, 
+            <Outlet context={{
+              selectedConversation,
               quickQuestion,
-              resetQuickQuestion: () => setQuickQuestion("") 
+              resetQuickQuestion: () => setQuickQuestion(""),
+              refreshSidebar: handleRefreshSidebar
             }} /> {/* Nested routes render here with context */}
           </main>
           <footer className="bg-gray-800 bg-opacity-50 text-center text-gray-400 text-xs py-1 border-t border-gray-700 flex-shrink-0">
@@ -202,12 +239,12 @@ const FeatureCard = ({ title, description, icon, linkTo, onClick }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
           </svg>
         );
-       case "auth": // Icon for Login/Register card
-         return (
-            <svg className="w-12 h-12 text-yellow-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-         );
+      case "auth": // Icon for Login/Register card
+        return (
+          <svg className="w-12 h-12 text-yellow-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        );
       default: return null;
     }
   };

@@ -813,15 +813,273 @@ async def update_user_stats(stats_update: StatsUpdate, current_user: dict = Depe
         raise HTTPException(status_code=500, detail="Lỗi máy chủ khi cập nhật thống kê học tập")
 
 
-# --- Chat History Endpoint ---
+# --- Conversation Endpoints (NEW) ---
 
-class ChatHistoryResponse(BaseModel):
-    username: str
-    history: List[Dict[str, Any]] # List of chat entries {user: str, assistant: str, timestamp: datetime}
+@app.get("/conversations", response_model=Dict[str, Any])
+async def list_conversations(
+    current_user: dict = Depends(get_current_user), 
+    limit: int = 20,
+    skip: int = 0,
+    is_active: Optional[bool] = None
+):
+    """Lấy danh sách conversations của người dùng hiện tại"""
+    try:
+        username = current_user.get("username")
+        collection = get_mongo_connection()
+        db = collection.database
+        conversations_collection = db["conversations"]
+        
+        # Build query
+        query = {"username": username}
+        if is_active is not None:
+            query["is_active"] = is_active
+        
+        # Get total count
+        total = conversations_collection.count_documents(query)
+        
+        # Get paginated conversations
+        conversations = list(
+            conversations_collection.find(query)
+            .sort("updated_at", -1)
+            .skip(skip)
+            .limit(limit)
+        )
+        
+        # Convert ObjectId to string for JSON serialization
+        for conv in conversations:
+            conv["_id"] = str(conv["_id"])
+        
+        return {
+            "conversations": conversations,
+            "total": total,
+            "limit": limit,
+            "skip": skip
+        }
+    
+    except Exception as e:
+        logger.error(f"Error listing conversations for {current_user.get('username')}: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy danh sách cuộc trò chuyện: {str(e)}")
 
-@app.get("/chat_history/{username}", response_model=ChatHistoryResponse)
-async def get_user_chat_history(username: str, current_user: dict = Depends(get_current_user), limit: int = 50):
-    """Lấy lịch sử trò chuyện của người dùng (giới hạn 50 tin nhắn gần nhất)"""
+
+@app.post("/conversations", response_model=Dict[str, Any])
+async def create_conversation(
+    current_user: dict = Depends(get_current_user),
+    title: Optional[str] = None
+):
+    """Tạo conversation mới"""
+    try:
+        from bson import ObjectId
+        import uuid
+        
+        username = current_user.get("username")
+        collection = get_mongo_connection()
+        db = collection.database
+        conversations_collection = db["conversations"]
+        
+        now_utc = datetime.now(timezone.utc)
+        
+        # Deactivate all current active conversations for this user
+        conversations_collection.update_many(
+            {"username": username, "is_active": True},
+            {"$set": {"is_active": False}}
+        )
+        
+        # Create new conversation
+        session_id = f"sess_{uuid.uuid4().hex[:12]}"
+        conversation_title = title or "Cuộc trò chuyện mới"
+        
+        conversation_doc = {
+            "_id": ObjectId(),
+            "username": username,
+            "session_id": session_id,
+            "title": conversation_title,
+            "created_at": now_utc,
+            "updated_at": now_utc,
+            "is_active": True,
+            "is_archived": False,
+            "message_count": 0,
+            "topic_tags": [],
+            "messages": []
+        }
+        
+        result = conversations_collection.insert_one(conversation_doc)
+        
+        # Update user's total conversations count
+        collection.update_one(
+            {"_id": username},
+            {
+                "$inc": {"total_conversations": 1},
+                "$set": {"last_activity": now_utc}
+            },
+            upsert=True
+        )
+        
+        logger.info(f"Created new conversation {result.inserted_id} for user: {username}")
+        
+        return {
+            "success": True,
+            "conversation_id": str(result.inserted_id),
+            "title": conversation_title,
+            "created_at": now_utc.isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating conversation for {current_user.get('username')}: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo cuộc trò chuyện: {str(e)}")
+
+
+@app.post("/conversations/deactivate_all", response_model=Dict[str, Any])
+async def deactivate_all_conversations(current_user: dict = Depends(get_current_user)):
+    """Deactivate tất cả conversations của user - dùng khi click New Chat"""
+    try:
+        username = current_user.get("username")
+        collection = get_mongo_connection()
+        db = collection.database
+        conversations_collection = db["conversations"]
+        
+        # Deactivate all active conversations for this user
+        result = conversations_collection.update_many(
+            {"username": username, "is_active": True},
+            {"$set": {"is_active": False}}
+        )
+        
+        logger.info(f"Deactivated {result.modified_count} conversations for user: {username}")
+        
+        return {
+            "success": True,
+            "deactivated_count": result.modified_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deactivating conversations for {current_user.get('username')}: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi deactivate conversations: {str(e)}")
+
+
+
+@app.get("/conversations/{conversation_id}", response_model=Dict[str, Any])
+async def get_conversation(
+    conversation_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Lấy chi tiết một conversation"""
+    try:
+        from bson import ObjectId
+        
+        collection = get_mongo_connection()
+        db = collection.database
+        conversations_collection = db["conversations"]
+        
+        # Find conversation
+        conversation = conversations_collection.find_one({"_id": ObjectId(conversation_id)})
+        
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Cuộc trò chuyện không tồn tại")
+        
+        # Check ownership
+        if conversation["username"] != current_user.get("username"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Không được phép xem cuộc trò chuyện của người dùng khác"
+            )
+        
+        # Convert ObjectId to string
+        conversation["_id"] = str(conversation["_id"])
+        
+        return conversation
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting conversation {conversation_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy cuộc trò chuyện: {str(e)}")
+
+
+@app.post("/conversations/{conversation_id}/archive", response_model=Dict[str, Any])
+async def archive_conversation(
+    conversation_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Lưu trữ một conversation"""
+    try:
+        from bson import ObjectId
+        
+        collection = get_mongo_connection()
+        db = collection.database
+        conversations_collection = db["conversations"]
+        
+        # Find and verify ownership
+        conversation = conversations_collection.find_one({"_id": ObjectId(conversation_id)})
+        
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Cuộc trò chuyện không tồn tại")
+        
+        if conversation["username"] != current_user.get("username"):
+            raise HTTPException(status_code=403, detail="Không được phép chỉnh sửa cuộc trò chuyện của người dùng khác")
+        
+        # Archive
+        result = conversations_collection.update_one(
+            {"_id": ObjectId(conversation_id)},
+            {
+                "$set": {
+                    "is_archived": True,
+                    "is_active": False,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        return {"success": result.modified_count > 0, "message": "Lưu trữ thành công"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error archiving conversation {conversation_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lưu trữ cuộc trò chuyện: {str(e)}")
+
+
+@app.delete("/conversations/{conversation_id}", response_model=Dict[str, Any])
+async def delete_conversation(
+    conversation_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Xóa một conversation"""
+    try:
+        from bson import ObjectId
+        
+        collection = get_mongo_connection()
+        db = collection.database
+        conversations_collection = db["conversations"]
+        
+        # Find and verify ownership
+        conversation = conversations_collection.find_one({"_id": ObjectId(conversation_id)})
+        
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Cuộc trò chuyện không tồn tại")
+        
+        if conversation["username"] != current_user.get("username"):
+            raise HTTPException(status_code=403, detail="Không được phép xóa cuộc trò chuyện của người dùng khác")
+        
+        # Delete
+        result = conversations_collection.delete_one({"_id": ObjectId(conversation_id)})
+        
+        return {"success": result.deleted_count > 0, "message": "Xóa thành công"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting conversation {conversation_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xóa cuộc trò chuyện: {str(e)}")
+
+
+# --- Chat History Endpoint (UPDATED to use conversations collection) ---
+
+@app.get("/chat_history/{username}", response_model=Dict[str, Any])
+async def get_user_chat_history(
+    username: str, 
+    current_user: dict = Depends(get_current_user), 
+    limit: int = 50
+):
+    """Lấy lịch sử trò chuyện của người dùng từ conversations collection (limit: 50 conversations gần nhất)"""
     try:
         # Kiểm tra quyền truy cập
         if current_user.get("username") != username and not current_user.get("is_admin", False):
@@ -831,25 +1089,44 @@ async def get_user_chat_history(username: str, current_user: dict = Depends(get_
             )
 
         collection = get_mongo_connection()
+        
+        # Check if user exists
+        user_exists = collection.count_documents({"_id": username}) > 0
+        if not user_exists:
+            raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
+
+        # Get conversations
+        db = collection.database
+        conversations_collection = db["conversations"]
+        
+        conversations = list(
+            conversations_collection.find({"username": username})
+            .sort("updated_at", -1)
+            .limit(limit)
+        )
+        
+        # Convert ObjectId to string for JSON serialization
+        for conv in conversations:
+            conv["_id"] = str(conv["_id"])
+            # Also convert ObjectIds in messages
+            if "messages" in conv and conv["messages"]:
+                for msg in conv["messages"]:
+                    if "_id" in msg:
+                        msg["_id"] = str(msg["_id"])
+        
+        # Get total messages
         user_data = collection.find_one(
             {"_id": username},
-            {"chat_history": {"$slice": -limit}} # Lấy 'limit' tin nhắn cuối cùng
+            {"total_messages": 1}
         )
-
-        if not user_data:
-            # If user exists but has no history, return empty list
-            # Check if user exists at all first
-            user_exists = collection.count_documents({"_id": username}) > 0
-            if not user_exists:
-                 raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
-            else:
-                 # User exists, but no chat history yet
-                 return ChatHistoryResponse(username=username, history=[])
-
-
-        history = user_data.get("chat_history", [])
-
-        return ChatHistoryResponse(username=username, history=history)
+        total_messages = user_data.get("total_messages", 0) if user_data else 0
+        
+        return {
+            "username": username,
+            "conversations": conversations,
+            "total_conversations": len(conversations),
+            "total_messages": total_messages
+        }
 
     except HTTPException:
         raise
