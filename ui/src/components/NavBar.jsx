@@ -12,7 +12,6 @@ const NavBar = () => {
   const navItems = [
     { path: '/', label: 'Trang chủ', icon: <FiHome /> },
     { path: '/chat', label: 'Trò chuyện', icon: <FiMessageSquare />, requiresAuth: true }, // Example: require auth
-    { path: '/stats', label: 'Thống kê', icon: <FiBarChart2 />, requiresAuth: true },
     { path: '/tools', label: 'Công cụ', icon: <FiTool />, requiresAuth: true },
     // { path: '/faq', label: 'FAQs', icon: <FiHelpCircle /> }, // Keep or remove FAQ
   ].filter(item => !item.requiresAuth || isAuthenticated); // Filter based on auth
@@ -48,7 +47,7 @@ const NavBar = () => {
                     location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path))
                       ? "bg-blue-600 text-white shadow-sm"
                       : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}
+                    }`}
                   aria-current={location.pathname === item.path ? "page" : undefined}
                 >
                   <span className="mr-1.5 text-base">{item.icon}</span> {/* Adjust icon size/margin */}
@@ -63,14 +62,14 @@ const NavBar = () => {
             {isAuthenticated && user ? (
               <>
                 {/* Profile Link (Optional) */}
-                 <Link
-                   to="/profile" // Assuming you'll add a /profile route
-                   className="flex items-center text-sm text-gray-300 hover:text-white transition-colors"
-                   title={user.full_name || user.username}
-                 >
-                   <FiUser className="mr-1" />
-                   <span className="truncate max-w-[100px]">{user.full_name || user.username}</span>
-                 </Link>
+                <Link
+                  to="/profile" // Assuming you'll add a /profile route
+                  className="flex items-center text-sm text-gray-300 hover:text-white transition-colors"
+                  title={user.full_name || user.username}
+                >
+                  <FiUser className="mr-1" />
+                  <span className="truncate max-w-[100px]">{user.full_name || user.username}</span>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="px-3 py-1.5 bg-red-600 rounded-md text-sm font-medium text-white hover:bg-red-700 transition-colors duration-200 flex items-center"
@@ -85,24 +84,24 @@ const NavBar = () => {
                 to="/login"
                 className="px-3 py-1.5 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors duration-200 flex items-center"
               >
-                 <FiLogIn className="mr-1.5" />
-                 <span>Đăng nhập</span>
+                <FiLogIn className="mr-1.5" />
+                <span>Đăng nhập</span>
               </Link>
             )}
           </div>
 
-           {/* Mobile menu button (Functionality not implemented here) */}
-           <div className="md:hidden flex items-center">
-             {/* TODO: Implement mobile menu toggle */}
-             <button className="text-gray-300 hover:text-white p-2 focus:outline-none">
-               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-             </button>
-           </div>
+          {/* Mobile menu button (Functionality not implemented here) */}
+          <div className="md:hidden flex items-center">
+            {/* TODO: Implement mobile menu toggle */}
+            <button className="text-gray-300 hover:text-white p-2 focus:outline-none">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+          </div>
 
         </div>
       </div>
-       {/* TODO: Implement Mobile Menu Dropdown */}
-       {/* <div className="md:hidden"> ... mobile menu items ... </div> */}
+      {/* TODO: Implement Mobile Menu Dropdown */}
+      {/* <div className="md:hidden"> ... mobile menu items ... </div> */}
     </div>
   );
 };

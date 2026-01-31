@@ -390,6 +390,31 @@ export const uploadDocument = async (file, token, onUploadProgress) => {
   return response.data; // Expects UploadResponse structure
 };
 
+// List Files
+export const listFiles = async (token) => {
+  const response = await api.get('/files', {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data; // Expects { success: true, files: [...] }
+};
+
+// Delete File
+export const deleteFile = async (filename, token) => {
+  const response = await api.delete(`/files/${filename}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data; // Expects { success: true, message: ... }
+};
+
+// Get File Content (Blob)
+export const getFileContent = async (fileId, token) => {
+  const response = await api.get(`/files/${fileId}/content`, {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'blob'
+  });
+  return response; // Return full response to access headers (content-type)
+};
+
 
 // Default export remains the axios instance for direct use if needed
 export default api;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiFileText, FiBookOpen, FiMap, FiList, FiCpu, FiLayers, FiClock, FiBarChart2, FiAlertTriangle } from "react-icons/fi";
+import { FiFileText, FiBookOpen, FiMap, FiList, FiCpu, FiLayers, FiClock, FiBarChart2, FiAlertTriangle, FiDatabase } from "react-icons/fi";
 import { useAuth } from '../contexts/AuthContext';
 import { handleToolAction } from '../services/api';
 
@@ -12,6 +12,7 @@ import ConceptExplainer from "./ConceptExplainer";
 import SummaryGenerator from "./SummaryGenerator";
 import MindMapCreator from "./MindMapCreator";
 import QuizGenerator from "./QuizGenerator";
+import FileManager from "./FileManager"; // Import FileManager
 
 const Tools = () => {
   const { toolId } = useParams();
@@ -33,6 +34,7 @@ const Tools = () => {
     { id: "concept_explainer", icon: <FiBookOpen />, name: "Concept Explainer", description: "Giải thích khái niệm phức tạp", component: ConceptExplainer },
     { id: "summary_generator", icon: <FiList />, name: "Summary Generator", description: "Tóm tắt nội dung tài liệu", component: SummaryGenerator },
     { id: "mind_map_creator", icon: <FiMap />, name: "Mind Map Creator", description: "Tạo sơ đồ tư duy từ chủ đề", component: MindMapCreator },
+    { id: "file_manager", icon: <FiDatabase />, name: "File Manager", description: "Quản lý và tải lên tài liệu học tập cá nhân", component: FileManager },
   ];
 
   // Ref để theo dõi activeToolId hiện tại, giúp tránh race condition

@@ -2,7 +2,12 @@ import { useState, useRef } from "react";
 import { FiUpload, FiFile, FiCheck, FiAlertTriangle, FiLoader } from "react-icons/fi";
 import { uploadDocument } from '../services';
 
-const FileUploader = () => {
+// Import useAuth to get token if needed, but api.js handles it via localStorage or we pass it
+// Since uploadDocument in api.js takes token, we need it.
+import { useAuth } from '../contexts/AuthContext';
+
+const FileUploader = ({ onUploadSuccess }) => {
+  const { token } = useAuth();
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null);
@@ -55,16 +60,14 @@ const FileUploader = () => {
       const results = [];
 
       for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("http://localhost:5000/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const result = await response.json();
-        results.push({ file: file.name, success: response.ok, result });
+        try {
+          // Use service
+          const response = await uploadDocument(file, token);
+          results.push({ file: file.name, success: true, result: response });
+        } catch (err) {
+          console.error(`Failed to upload ${file.name}`, err);
+          results.push({ file: file.name, success: false, result: { error: err.message } });
+        }
       }
 
       const allSuccessful = results.every(r => r.success);
@@ -72,19 +75,22 @@ const FileUploader = () => {
       setUploadStatus({
         success: allSuccessful,
         message: allSuccessful
-          ? "All files uploaded successfully!"
-          : "Some files failed to upload.",
+          ? "Tải lên thành công tất cả file!"
+          : "Một số file tải lên thất bại.",
         details: results
       });
 
       if (allSuccessful) {
         setFiles([]);
+        if (onUploadSuccess) {
+          onUploadSuccess(results);
+        }
       }
     } catch (error) {
       console.error("Upload error:", error);
       setUploadStatus({
         success: false,
-        message: "Error uploading files: " + error.message,
+        message: "Lỗi hệ thống: " + error.message,
         details: []
       });
     } finally {
@@ -152,8 +158,8 @@ const FileUploader = () => {
       {/* Upload button */}
       <button
         className={`w-full py-3 rounded-lg flex items-center justify-center ${files.length === 0 || uploading
-            ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-            : "bg-blue-600 hover:bg-blue-700 text-white"
+          ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700 text-white"
           } transition-colors duration-200`}
         onClick={handleUpload}
         disabled={files.length === 0 || uploading}

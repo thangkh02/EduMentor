@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Routes, Route, Navigate, Link, Outlet } from "react-router-dom"; // Import Outlet
+import { Routes, Route, Navigate, Link, Outlet, useLocation } from "react-router-dom"; // Import Outlet and useLocation
 import Sidebar from "./components/Sidebar";
 import ChatInterface from "./components/ChatInterface";
 import Tools from "./components/Tools";
@@ -8,7 +8,7 @@ import FileUploader from "./components/FileUploader";
 import Login from "./components/Login"; // Import Login
 import Register from "./components/Register"; // Import Register
 import ProtectedRoute from "./components/ProtectedRoute"; // Import ProtectedRoute
-import UserStats from "./components/UserStats"; // Import UserStats component
+
 import { TypeAnimation } from "react-type-animation";
 import edubotLogo from "./assets/duu.png";
 import { useAuth } from "./contexts/AuthContext"; // Import useAuth to check auth status
@@ -120,35 +120,40 @@ const MainLayout = () => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
+  const location = useLocation();
+  const isChatPage = location.pathname === '/chat';
+
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       <NavBar />
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar with integrated toggle button */}
-        <div className={`hidden md:flex bg-gray-900 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
-          {isSidebarOpen && (
-            <div className="w-64 flex-shrink-0 relative">
-              <Sidebar
-                handleQuickQuestion={handleQuickQuestion}
-                onSelectConversation={handleSelectConversation}
-                refreshTrigger={refreshTrigger}
-              />
-              {/* Toggle button integrated into sidebar edge */}
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="absolute top-4 -right-3 p-1.5 bg-gray-800 hover:bg-blue-600 text-gray-400 hover:text-white rounded-full shadow-lg transition-all duration-200 border border-gray-700 hover:border-blue-500 group"
-                title="Ẩn sidebar"
-              >
-                <svg className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Sidebar with integrated toggle button - Only show on Chat page */}
+        {isChatPage && (
+          <div className={`hidden md:flex bg-gray-900 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
+            {isSidebarOpen && (
+              <div className="w-64 flex-shrink-0 relative">
+                <Sidebar
+                  handleQuickQuestion={handleQuickQuestion}
+                  onSelectConversation={handleSelectConversation}
+                  refreshTrigger={refreshTrigger}
+                />
+                {/* Toggle button integrated into sidebar edge */}
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="absolute top-4 -right-3 p-1.5 bg-gray-800 hover:bg-blue-600 text-gray-400 hover:text-white rounded-full shadow-lg transition-all duration-200 border border-gray-700 hover:border-blue-500 group"
+                  title="Ẩn sidebar"
+                >
+                  <svg className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Show button when sidebar is closed */}
-        {!isSidebarOpen && (
+        {/* Show button when sidebar is closed - Only on Chat Page */}
+        {isChatPage && !isSidebarOpen && (
           <button
             onClick={() => setIsSidebarOpen(true)}
             className="hidden md:flex items-center justify-center w-10 h-10 bg-gray-800 hover:bg-blue-600 text-gray-400 hover:text-white rounded-r-lg shadow-lg transition-all duration-200 border-r border-t border-b border-gray-700 hover:border-blue-500 group fixed left-0 top-20 z-40"
@@ -205,7 +210,6 @@ function App() {
         {/* Routes rendered inside MainLayout's Outlet */}
         <Route path="/" element={<HomePage />} />
         <Route path="/chat" element={<ChatInterface commonQuestions={commonQuestions} />} />
-        <Route path="/stats" element={<UserStats />} />
         <Route path="/tools" element={<Tools />} />
         <Route path="/tools/:toolId" element={<Tools />} />
         {/* Add other protected routes here (e.g., /profile) */}

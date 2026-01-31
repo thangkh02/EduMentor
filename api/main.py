@@ -159,69 +159,10 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Endpoints API ---
 
-@app.post("/upload", response_model=UploadResponse)
-async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
-    """Upload file và chạy indexing trong background."""
-    try:
-        allowed_extensions = {'.pdf', '.docx', '.doc', '.txt', '.pptx', '.ppt'}
-        file_ext = Path(file.filename).suffix.lower()
-        
-        if file_ext not in allowed_extensions:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Định dạng file không được hỗ trợ. Chỉ chấp nhận: {', '.join(allowed_extensions)}"
-            )
 
-        # Tạo tên file duy nhất để tránh xung đột
-        safe_filename = f"{Path(file.filename).stem}_{os.urandom(4).hex()}{file_ext}"
-        file_location = UPLOAD_DIR / safe_filename
 
-        # Lưu file
-        try:
-            with open(file_location, "wb") as f:
-                content = await file.read()
-                f.write(content)
-        except IOError as e:
-            logger.error(f"Failed to save file {file.filename}: {e}")
-            raise HTTPException(status_code=500, detail=f"Không thể lưu file: {e}")
 
-        # Hàm chạy indexing trong background
-        def run_indexing(location: Path, ext: str):
-            logger.info(f"Indexing file {location.name} in background")
-            try:
-                metadata = {"original_filename": file.filename}
-                if ext == '.pdf':
-                    result = document_indexer.index_document(str(location), doc_metadata=metadata)
-                elif ext in ['.pptx', '.ppt']:
-                    result = document_indexer.index_document(str(location), file_type="pptx", doc_metadata=metadata)
-                elif ext in ['.docx', '.doc']:
-                    result = document_indexer.index_document(str(location), file_type="docx", doc_metadata=metadata)
-                else:  # .txt
-                    result = document_indexer.index_document(str(location), doc_metadata=metadata)
-                
-                if result.get("success"):
-                    logger.info(f"Indexed {location.name}: {result.get('documents_added', 0)} chunks added")
-                else:
-                    logger.error(f"Indexing failed for {location.name}: {result.get('error', 'Unknown error')}")
-            except Exception as e:
-                logger.error(f"Error indexing {location.name}: {e}")
 
-        background_tasks.add_task(run_indexing, file_location, file_ext)
-
-        return UploadResponse(
-            success=True,
-            filename=file.filename,
-            indexed=False,  # Indexing chưa hoàn thành
-            documents_added=0,
-            file_type=file_ext,
-            message="File đã được nhận và đang được xử lý trong background",
-            metadata={"saved_as": safe_filename}
-        )
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger.error(f"Unexpected error in /upload: {e}")
-        raise HTTPException(status_code=500, detail=f"Lỗi máy chủ: {str(e)}")
 
 # --- Authentication Helper ---
 # Define get_current_user BEFORE it's used as a dependency
@@ -613,6 +554,216 @@ async def update_user_profile(user_update: UserUpdate, current_user: dict = Depe
         raise HTTPException(status_code=500, detail="Lỗi máy chủ khi cập nhật thông tin người dùng")
 
 
+# --- File Management Endpoints (Moved here to have access to get_current_user) ---
+
+@app.post("/upload", response_model=UploadResponse)
+async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Upload file và chạy indexing trong background."""
+    try:
+        allowed_extensions = {'.pdf', '.docx', '.doc', '.txt', '.pptx', '.ppt'}
+        file_ext = Path(file.filename).suffix.lower()
+        
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Định dạng file không được hỗ trợ. Chỉ chấp nhận: {', '.join(allowed_extensions)}"
+            )
+
+        # Tạo tên file duy nhất để tránh xung đột
+        safe_filename = f"{Path(file.filename).stem}_{os.urandom(4).hex()}{file_ext}"
+        file_location = UPLOAD_DIR / safe_filename
+
+        # Lưu file
+        try:
+            with open(file_location, "wb") as f:
+                content = await file.read()
+                f.write(content)
+        except IOError as e:
+            logger.error(f"Failed to save file {file.filename}: {e}")
+            raise HTTPException(status_code=500, detail=f"Không thể lưu file: {e}")
+
+        # Hàm chạy indexing trong background
+        def run_indexing(location: Path, ext: str):
+            logger.info(f"Indexing file {location.name} in background")
+            try:
+                metadata = {"original_filename": file.filename}
+                if ext == '.pdf':
+                    result = document_indexer.index_document(str(location), doc_metadata=metadata)
+                elif ext in ['.pptx', '.ppt']:
+                    result = document_indexer.index_document(str(location), file_type="pptx", doc_metadata=metadata)
+                elif ext in ['.docx', '.doc']:
+                    result = document_indexer.index_document(str(location), file_type="docx", doc_metadata=metadata)
+                else:  # .txt
+                    result = document_indexer.index_document(str(location), doc_metadata=metadata)
+                
+                if result.get("success"):
+                    logger.info(f"Indexed {location.name}: {result.get('documents_added', 0)} chunks added")
+                else:
+                    logger.error(f"Indexing failed for {location.name}: {result.get('error', 'Unknown error')}")
+            except Exception as e:
+                logger.error(f"Error indexing {location.name}: {e}")
+
+        background_tasks.add_task(run_indexing, file_location, file_ext)
+
+        # INSERT INTRO DB: Save file metadata for user
+        try:
+            print(f"DEBUG: Attempting to save file metadata for user {current_user['_id']}")
+            users_collection = get_mongo_connection()
+            db = users_collection.database
+            files_collection = db["user_files"]
+            
+            file_record = {
+                "user_id": current_user["_id"],
+                "filename": safe_filename,
+                "original_filename": file.filename,
+                "file_path": str(file_location),
+                "file_size": file_location.stat().st_size if file_location.exists() else 0,
+                "content_type": file.content_type,
+                "created_at": datetime.now(timezone.utc)
+            }
+            result = files_collection.insert_one(file_record)
+            logger.info(f"Saved file metadata for user {current_user['_id']}")
+            print(f"DEBUG: Successfully saved file metadata. ID: {result.inserted_id}")
+        except Exception as e:
+            logger.error(f"Error saving user file metadata: {e}")
+            print(f"DEBUG: Error saving user file metadata: {e}")
+            # Non-critical, continue
+
+        return UploadResponse(
+            success=True,
+            filename=file.filename,
+            indexed=False,  # Indexing chưa hoàn thành
+            documents_added=0,
+            file_type=file_ext,
+            message="File đã được nhận và đang được xử lý trong background",
+            metadata={"saved_as": safe_filename}
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in /upload: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi máy chủ: {str(e)}")
+
+@app.get("/files", response_model=Dict[str, Any])
+async def list_files(current_user: dict = Depends(get_current_user)):
+    """List all files uploaded by the current user."""
+    print(f"DEBUG: list_files called for user {current_user.get('username')}")
+    try:
+        users_collection = get_mongo_connection()
+        db = users_collection.database
+        print(f"DEBUG: Connected to DB: {db.name}")
+        
+        files_collection = db["user_files"]
+        
+        # Query files for current user
+        query = {"user_id": current_user["_id"]}
+        print(f"DEBUG: Querying files with: {query}")
+        
+        cursor = files_collection.find(query).sort("created_at", -1)
+        files = []
+        for doc in cursor:
+            files.append({
+                "id": str(doc["_id"]),
+                "name": doc["original_filename"],
+                "filename": doc["filename"], # safe filename
+                "size": doc.get("file_size", 0),
+                "created_at": doc["created_at"].isoformat() if isinstance(doc["created_at"], datetime) else doc["created_at"],
+                "type": doc.get("content_type", "unknown")
+            })
+        
+        print(f"DEBUG: Found {len(files)} files") 
+        return {
+            "success": True,
+            "files": files,
+            "count": len(files)
+        }
+    except Exception as e:
+        logger.error(f"Error listing files: {e}")
+        print(f"DEBUG: Error listing files: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy danh sách file: {str(e)}")
+
+
+@app.delete("/files/{file_id}", response_model=Dict[str, Any])
+async def delete_file(file_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a file uploaded by the current user."""
+    try:
+        users_collection = get_mongo_connection()
+        db = users_collection.database
+        files_collection = db["user_files"]
+        
+        # Find file belonging to user
+        from bson.objectid import ObjectId
+        try:
+             # Try objectId first
+             query = {"_id": ObjectId(file_id), "user_id": current_user["_id"]}
+        except:
+             # Fallback to checking by filename if for some reason ID structure differs
+             # But we should rely on ObjectId from previous list call
+             raise HTTPException(status_code=400, detail="Invalid file ID format")
+
+        file_doc = files_collection.find_one(query)
+        
+        if not file_doc:
+            raise HTTPException(status_code=404, detail="File không tồn tại hoặc bạn không có quyền xóa")
+            
+        # Delete physical file
+        filename = file_doc["filename"]
+        file_path = UPLOAD_DIR / filename
+        if file_path.exists():
+            os.remove(file_path)
+            
+        # Delete DB record
+        files_collection.delete_one({"_id": file_doc["_id"]})
+        
+        return {
+            "success": True,
+            "message": f"Đã xóa file {file_doc['original_filename']}"
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error deleting file {file_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xóa file: {str(e)}")
+
+from fastapi.responses import FileResponse
+
+@app.get("/files/{file_id}/content")
+async def get_file_content(file_id: str, current_user: dict = Depends(get_current_user)):
+    """Retrieve file content for preview or download."""
+    try:
+        users_collection = get_mongo_connection()
+        db = users_collection.database
+        files_collection = db["user_files"]
+        
+        # Verify ownership
+        from bson.objectid import ObjectId
+        query = {"_id": ObjectId(file_id), "user_id": current_user["_id"]}
+        
+        file_doc = files_collection.find_one(query)
+        if not file_doc:
+            raise HTTPException(status_code=404, detail="File not found or access denied")
+            
+        filename = file_doc["filename"] # safe filename on disk
+        file_path = UPLOAD_DIR / filename
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File content not found on server")
+            
+        # Determine media type
+        media_type = file_doc.get("content_type", "application/octet-stream")
+        
+        # Return file response
+        # Using 'inline' disposition allows browser to preview if possible (PDF, Text, Images)
+        return FileResponse(
+            path=file_path, 
+            media_type=media_type, 
+            filename=file_doc["original_filename"],
+            headers={"Content-Disposition": f"inline; filename*=utf-8''{file_doc['original_filename']}"}
+        )
+            
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error retrieving file content {file_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving file: {str(e)}")
 # --- Stats Endpoints ---
 
 @app.get("/stats/{username}", response_model=StatsResponse)
